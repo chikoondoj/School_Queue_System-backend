@@ -15,7 +15,7 @@ model User {
   course        String?
   year          Int?
   createdAt     DateTime        @default(now())
-  studentCode   String?          @unique
+  studentCode   String?         @unique
   updatedAt     DateTime        @updatedAt
   isActive      Boolean?        @default(true)
   role          Role            @default(STUDENT)
@@ -48,13 +48,13 @@ model Tickets {
   id            String          @id @default(cuid())
   position      Int
   status        TicketStatus    @default(WAITING)
-  isNew         Boolean         @default(true)  // <-- Add this line
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
   calledAt      DateTime?
   completedAt   DateTime?
   userId        String
   serviceId     String
+  isNew         Boolean         @default(true)
   activity_logs activity_logs[]
   service       Service         @relation(fields: [serviceId], references: [id], onDelete: Cascade)
   user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
