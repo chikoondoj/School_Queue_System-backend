@@ -1,0 +1,166 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String          @id @default(cuid())
+  email         String?
+  password      String
+  name          String
+  course        String?
+  year          Int?
+  createdAt     DateTime        @default(now())
+  studentCode   String?          @unique
+  updatedAt     DateTime        @updatedAt
+  isActive      Boolean?        @default(true)
+  role          Role            @default(STUDENT)
+  adminCode     String?         @unique
+  activities    Activity[]
+  activity_logs activity_logs[]
+  tickets       Tickets[]
+
+  @@index([studentCode], map: "idx_users_student_code")
+  @@map("users")
+}
+
+model Service {
+  id               String            @id @default(cuid())
+  name             String
+  description      String?
+  createdAt        DateTime          @default(now())
+  isActive         Boolean           @default(true)
+  updatedAt        DateTime          @updatedAt
+  estimatedTime    Int?
+  activity_logs    activity_logs[]
+  queue_statistics queue_statistics?
+  tickets          Tickets[]
+
+  @@index([name], map: "idx_services_name")
+  @@map("services")
+}
+
+model Tickets {
+  id            String          @id @default(cuid())
+  position      Int
+  status        TicketStatus    @default(WAITING)
+  isNew         Boolean         @default(true)  // <-- Add this line
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  calledAt      DateTime?
+  completedAt   DateTime?
+  userId        String
+  serviceId     String
+  activity_logs activity_logs[]
+  service       Service         @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([createdAt], map: "idx_tickets_created_at")
+  @@index([serviceId], map: "idx_tickets_service_id")
+  @@index([status], map: "idx_tickets_status")
+  @@index([userId], map: "idx_tickets_user_id")
+  @@index([createdAt], map: "idx_queue_tickets_created_at")
+  @@index([serviceId], map: "idx_queue_tickets_service_id")
+  @@index([status], map: "idx_queue_tickets_status")
+  @@index([userId], map: "idx_queue_tickets_user_id")
+  @@map("queue_tickets")
+}
+
+model Activity {
+  id          String         @id @default(cuid())
+  title       String
+  description String?
+  type        ActivityType
+  status      ActivityStatus @default(ACTIVE)
+  startDate   DateTime?
+  endDate     DateTime?
+  userId      String?
+  metadata    Json?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  user        User?          @relation(fields: [userId], references: [id])
+
+  @@index([userId], map: "idx_activities_user_id")
+  @@index([type], map: "idx_activities_type")
+  @@index([status], map: "idx_activities_status")
+  @@index([createdAt], map: "idx_activities_created_at")
+  @@map("activities")
+}
+
+model activity_logs {
+  id            String    @id
+  userId        String?
+  ticketId      String?
+  serviceId     String?
+  action        String    @db.VarChar(255)
+  details       String?
+  ipAddress     String?   @db.VarChar(45)
+  userAgent     String?
+  timestamp     DateTime? @default(now()) @db.Timestamp(6)
+  services      Service?  @relation(fields: [serviceId], references: [id], onUpdate: NoAction, map: "fk_activity_service")
+  queue_tickets Tickets?  @relation(fields: [ticketId], references: [id], onUpdate: NoAction, map: "fk_activity_ticket")
+  users         User?     @relation(fields: [userId], references: [id], onUpdate: NoAction, map: "fk_activity_user")
+
+  @@index([serviceId], map: "idx_activity_logs_service_id")
+  @@index([ticketId], map: "idx_activity_logs_ticket_id")
+  @@index([timestamp], map: "idx_activity_logs_timestamp")
+  @@index([userId], map: "idx_activity_logs_user_id")
+}
+
+model queue_statistics {
+  id                 Int       @id @default(autoincrement())
+  serviceId          String    @unique(map: "unique_service_stats")
+  currentQueueLength Int?      @default(0)
+  estimatedWaitTime  Int?      @default(0)
+  averageServiceTime Float?    @default(0)
+  isActive           Boolean?  @default(true)
+  lastUpdated        DateTime? @default(now()) @db.Timestamp(6)
+  dailyTicketCount   Int?      @default(0)
+  weeklyTicketCount  Int?      @default(0)
+  monthlyTicketCount Int?      @default(0)
+  createdAt          DateTime? @default(now()) @db.Timestamp(6)
+  updatedAt          DateTime? @default(now()) @db.Timestamp(6)
+  services           Service   @relation(fields: [serviceId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_queue_stats_service")
+
+  @@index([serviceId], map: "idx_queue_statistics_service_id")
+}
+
+enum ActivityType {
+  ASSIGNMENT
+  QUIZ
+  LECTURE
+  LAB
+  PROJECT
+  EXAM
+  WORKSHOP
+  SEMINAR
+  TUTORIAL
+  FIELDWORK
+}
+
+enum ActivityStatus {
+  ACTIVE
+  INACTIVE
+  COMPLETED
+  CANCELLED
+  PENDING
+  OVERDUE
+}
+
+enum Role {
+  STUDENT
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum TicketStatus {
+  WAITING
+  CALLED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}

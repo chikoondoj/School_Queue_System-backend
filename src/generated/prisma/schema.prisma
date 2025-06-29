@@ -1,0 +1,87 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           Int          @id @default(autoincrement())
+  studentCode  String       @unique @map("student_code")
+  email        String?      @unique
+  password     String
+  name         String
+  course       String
+  year         Int
+  role         Role         @default(STUDENT)
+  isActive     Boolean      @default(true) @map("is_active")
+  createdAt    DateTime     @default(now()) @map("created_at")
+  updatedAt    DateTime     @updatedAt @map("updated_at")
+  queueEntries QueueEntry[]
+
+  @@map("users")
+}
+
+model Service {
+  id           Int          @id @default(autoincrement())
+  name         String       @unique
+  description  String?
+  isActive     Boolean      @default(true) @map("is_active")
+  createdAt    DateTime     @default(now()) @map("created_at")
+  updatedAt    DateTime     @updatedAt @map("updated_at")
+  queueEntries QueueEntry[]
+
+  @@map("services")
+}
+
+model QueueEntry {
+  id             Int         @id @default(autoincrement())
+  userId         Int         @map("user_id")
+  serviceId      Int         @map("service_id")
+  positionNumber Int         @map("position_number")
+  status         QueueStatus @default(WAITING)
+  priority       Int         @default(0)
+  estimatedTime  Int?        @map("estimated_time")
+  actualWaitTime Int?        @map("actual_wait_time")
+  notes          String?
+  createdAt      DateTime    @default(now()) @map("created_at")
+  updatedAt      DateTime    @updatedAt @map("updated_at")
+  servedAt       DateTime?   @map("served_at")
+  completedAt    DateTime?   @map("completed_at")
+  service        Service     @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  user           User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("queue_entries")
+}
+
+model QueueHistory {
+  id          Int      @id @default(autoincrement())
+  userId      Int      @map("user_id")
+  serviceId   Int      @map("service_id")
+  serviceName String   @map("service_name")
+  userName    String   @map("user_name")
+  userCode    String   @map("user_code")
+  waitTime    Int?     @map("wait_time")
+  status      String
+  createdAt   DateTime @default(now()) @map("created_at")
+  completedAt DateTime @map("completed_at")
+
+  @@map("queue_history")
+}
+
+enum Role {
+  STUDENT
+  ADMIN
+  STAFF
+}
+
+enum QueueStatus {
+  WAITING
+  BEING_SERVED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
