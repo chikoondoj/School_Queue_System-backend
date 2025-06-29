@@ -38,6 +38,23 @@ class Database {
     }
   }
 
+  async createTimestampTriggerFunction() {
+    try {
+      await prisma.$executeRawUnsafe(`
+        CREATE OR REPLACE FUNCTION trigger_set_timestamp()
+        RETURNS TRIGGER AS $$
+        BEGIN
+          NEW.updated_at = NOW();
+          RETURN NEW;
+        END;
+        $$ LANGUAGE plpgsql;
+      `);
+      console.log("✅ trigger_set_timestamp() created or already exists");
+    } catch (err) {
+      console.error("❌ Failed to create trigger_set_timestamp():", err);
+    }
+  }
+
   // Create all necessary tables
   async createTables() {
     const client = await this.pool.connect();
