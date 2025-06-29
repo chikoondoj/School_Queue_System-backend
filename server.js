@@ -8,6 +8,8 @@ const rateLimit = require("express-rate-limit");
 const session = require("express-session");
 const { Server } = require("socket.io");
 const cron = require("node-cron");
+const pgSession = require("connect-pg-simple")(session)
+const {Pool} = require("pg")
 require("dotenv").config();
 
 // Import services and utilities
@@ -45,14 +47,36 @@ const io = new Server(server, {
 });
 
 // Session middleware configuration
+// const sessionMiddleware = session({
+//   secret: process.env.SESSION_SECRET || "your-secret-key",
+//   resave: false,
+//   saveUninitialized: false,
+//   cookie: {
+//     secure: process.env.NODE_ENV === "production",
+//     httpOnly: true,
+//     maxAge: 24 * 60 * 60 * 1000, // 24 hours
+//     sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+//   },
+//   name: "queueSessionId",
+// });
+
+const pgPool = new Pool({
+  connectionString: process.env.DATABASE_URL, // set this in your .env
+  ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : false,
+});
+
 const sessionMiddleware = session({
+  store: new pgSession({
+    pool: pgPool,
+    tableName: "user_sessions", // you can customize this
+  }),
   secret: process.env.SESSION_SECRET || "your-secret-key",
   resave: false,
   saveUninitialized: false,
   cookie: {
     secure: process.env.NODE_ENV === "production",
     httpOnly: true,
-    maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    maxAge: 24 * 60 * 60 * 1000,
     sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
   },
   name: "queueSessionId",
@@ -102,28 +126,19 @@ app.use(
 
 app.use(
   helmet({
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'", "*"], // Allow everything (not recommended for production)
-        scriptSrc: [
-          "'self'",
-          "'unsafe-inline'",
-          "'unsafe-eval'", // Needed for some libraries (e.g. some dev tools or third-party libs)
-          "https:",
-          "http:",
-          "*",
-        ],
-        scriptSrcAttr: ["'unsafe-inline'"],
-        styleSrc: ["'self'", "'unsafe-inline'", "https:", "http:", "*"],
-        imgSrc: ["'self'", "data:", "blob:", "https:", "http:", "*"],
-        connectSrc: ["'self'", "ws:", "wss:", "http:", "https:", "*"],
-        fontSrc: ["'self'", "https:", "http:", "data:", "*"],
-        objectSrc: ["'none'"], // still block Flash/other plugins
-        frameSrc: ["*"], // Allow embedding if needed
-        upgradeInsecureRequests: null, // Disable auto-upgrading HTTP to HTTPS (optional)
-      },
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "https://cdn.jsdelivr.net", "'unsafe-inline'"],
+      connectSrc: ["'self'", "wss:", "https://your-api-domain.com"],
+      imgSrc: ["'self'", "data:"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com"],
+      objectSrc: ["'none'"],
+      frameSrc: ["'none'"],
     },
-  })
+  },
+})
 );
 
 app.use(limiter);

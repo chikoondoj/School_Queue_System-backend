@@ -38,29 +38,23 @@ class Database {
     }
   }
 
-  async createTimestampTriggerFunction() {
-    try {
-      await prisma.$executeRawUnsafe(`
-        CREATE OR REPLACE FUNCTION trigger_set_timestamp()
-        RETURNS TRIGGER AS $$
-        BEGIN
-          NEW.updated_at = NOW();
-          RETURN NEW;
-        END;
-        $$ LANGUAGE plpgsql;
-      `);
-      console.log("✅ trigger_set_timestamp() created or already exists");
-    } catch (err) {
-      console.error("❌ Failed to create trigger_set_timestamp():", err);
-    }
-  }
-
   // Create all necessary tables
   async createTables() {
     const client = await this.pool.connect();
 
     try {
       await client.query("BEGIN");
+
+      // Create trigger function for updating updatedAt timestamp
+      await client.query(`
+        CREATE OR REPLACE FUNCTION trigger_set_timestamp()
+        RETURNS TRIGGER AS $$
+        BEGIN
+          NEW."updatedAt" = NOW();
+          RETURN NEW;
+        END;
+        $$ LANGUAGE plpgsql;
+      `);
 
       // Users table - Updated to match Prisma schema
       await client.query(`
@@ -240,17 +234,6 @@ class Database {
         JOIN users u ON t."userId" = u.id
         JOIN services s ON t."serviceId" = s.id
         WHERE t.status IN ('WAITING', 'CALLED', 'IN_PROGRESS')
-      `);
-
-      // Create trigger function for updating updatedAt timestamp
-      await client.query(`
-        CREATE OR REPLACE FUNCTION trigger_set_timestamp()
-        RETURNS TRIGGER AS $$
-        BEGIN
-          NEW."updatedAt" = NOW();
-          RETURN NEW;
-        END;
-        $$ LANGUAGE plpgsql;
       `);
 
       // Create triggers for auto-updating updatedAt columns
