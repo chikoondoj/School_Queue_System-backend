@@ -280,6 +280,13 @@ class Models {
     return aheadCount + 1;
   }
 
+  static async updateTicketPosition(id, newPosition) {
+    return await prisma.tickets.update({
+      where: { id },
+      data: { position: newPosition },
+    });
+  }
+
   static async getQueueByService(serviceId) {
     return await prisma.tickets.findMany({
       where: {
@@ -771,7 +778,7 @@ class Models {
       timestamp: now,
     };
   }
-    static async getAllTickets(filters = {}) {
+  static async getAllTickets(filters = {}) {
     const where = {};
     if (filters.status) where.status = filters.status;
     if (filters.serviceId) where.serviceId = filters.serviceId;
@@ -839,6 +846,5 @@ class Models {
     });
   }
 }
-
 
 module.exports = { Models, prisma };
