@@ -8,8 +8,8 @@ const rateLimit = require("express-rate-limit");
 const session = require("express-session");
 const { Server } = require("socket.io");
 const cron = require("node-cron");
-const pgSession = require("connect-pg-simple")(session)
-const {Pool} = require("pg")
+const pgSession = require("connect-pg-simple")(session);
+const { Pool } = require("pg");
 require("dotenv").config();
 
 // Import services and utilities
@@ -62,7 +62,10 @@ const io = new Server(server, {
 
 const pgPool = new Pool({
   connectionString: process.env.DATABASE_URL, // set this in your .env
-  ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : false,
+  ssl:
+    process.env.NODE_ENV === "production"
+      ? { rejectUnauthorized: false }
+      : false,
 });
 
 const sessionMiddleware = session({
@@ -126,19 +129,19 @@ app.use(
 
 app.use(
   helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "https://cdn.jsdelivr.net", "'unsafe-inline'"],
-      connectSrc: ["'self'", "wss:", "https://your-api-domain.com"],
-      imgSrc: ["'self'", "data:"],
-      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-      fontSrc: ["'self'", "https://fonts.gstatic.com"],
-      objectSrc: ["'none'"],
-      frameSrc: ["'none'"],
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "https://cdn.jsdelivr.net", "'unsafe-inline'"],
+        connectSrc: ["'self'", "wss:", "https://your-api-domain.com"],
+        imgSrc: ["'self'", "data:"],
+        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+        fontSrc: ["'self'", "https://fonts.gstatic.com"],
+        objectSrc: ["'none'"],
+        frameSrc: ["'none'"],
+      },
     },
-  },
-})
+  })
 );
 
 app.use(limiter);
@@ -639,6 +642,11 @@ const updateQueueStatistics = async () => {
           averageServiceTime,
           service.availableWindows || 1
         );
+
+        if (!serviceId) {
+          console.warn("Skipping stats update due to missing serviceId");
+          return;
+        }
 
         // Update statistics in database
         await QueueStatistics.upsert({
