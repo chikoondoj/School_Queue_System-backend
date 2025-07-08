@@ -643,8 +643,10 @@ const updateQueueStatistics = async () => {
           service.availableWindows || 1
         );
 
-        if (!serviceId) {
-          console.warn("Skipping stats update due to missing serviceId");
+        if (!service || !service.id) {
+          console.warn(
+            "Skipping stats update due to missing service or service.id"
+          );
           return;
         }
 
@@ -688,7 +690,7 @@ const updateQueueStatistics = async () => {
         broadcastQueueUpdate(updateData, service.id);
       } catch (serviceError) {
         console.error(
-          `Error updating statistics for service ${service.id}:`,
+          `Error updating statistics for service ${service.id || "unknown"}:`,
           serviceError
         );
       }
