@@ -61,7 +61,7 @@ const io = new Server(server, {
 // });
 
 const pgPool = new Pool({
-  connectionString: process.env.DATABASE_URL, // set this in your .env
+  connectionString: process.env.DATABASE_URL,
   ssl:
     process.env.NODE_ENV === "production"
       ? { rejectUnauthorized: false }
@@ -71,16 +71,16 @@ const pgPool = new Pool({
 const sessionMiddleware = session({
   store: new pgSession({
     pool: pgPool,
-    tableName: "user_sessions", // you can customize this
+    tableName: "user_sessions",
   }),
   secret: process.env.SESSION_SECRET || "your-secret-key",
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: process.env.NODE_ENV === "production",
+    secure: true,
     httpOnly: true,
     maxAge: 24 * 60 * 60 * 1000,
-    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    sameSite: "none",
   },
   name: "queueSessionId",
 });
@@ -125,7 +125,7 @@ app.use(
   })
 );
 
-app.use(helmet()); // basic protections
+app.use(helmet());
 
 app.use(
   helmet.contentSecurityPolicy({
