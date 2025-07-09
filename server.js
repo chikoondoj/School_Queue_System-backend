@@ -133,7 +133,12 @@ app.use(
       directives: {
         defaultSrc: ["'self'"],
         scriptSrc: ["'self'", "https://cdn.jsdelivr.net", "'unsafe-inline'"],
-        connectSrc: ["'self'", "wss:", "https://school-queue-system-frontend.vercel.app/"],
+        connectSrc: [
+          "'self'",
+          "wss:",
+          "https://school-queue-system-frontend.vercel.app/",
+          "https://school-queue-system-backend.onrender.com",
+        ],
         imgSrc: ["'self'", "data:"],
         styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
         fontSrc: ["'self'", "https://fonts.gstatic.com"],
@@ -567,6 +572,10 @@ app.get("/api/queue/health", (req, res) => {
       adminConnections: adminSockets.size,
     },
   });
+});
+
+app.get("/", (req, res) => {
+  res.send("🎉 API server is running!");
 });
 
 // Enhanced broadcasting functions
