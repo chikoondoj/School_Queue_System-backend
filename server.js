@@ -133,7 +133,7 @@ app.use(
       directives: {
         defaultSrc: ["'self'"],
         scriptSrc: ["'self'", "https://cdn.jsdelivr.net", "'unsafe-inline'"],
-        connectSrc: ["'self'", "wss:", "https://your-api-domain.com"],
+        connectSrc: ["'self'", "wss:", "https://school-queue-system-frontend.vercel.app/"],
         imgSrc: ["'self'", "data:"],
         styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
         fontSrc: ["'self'", "https://fonts.gstatic.com"],
