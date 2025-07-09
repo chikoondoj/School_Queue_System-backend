@@ -127,38 +127,40 @@ app.use(
 
 // const helmet = require('helmet');
 
+const helmet = require("helmet");
+
+app.use(helmet()); // basic protections
+
 app.use(
-  helmet({
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'"],
-        scriptSrc: [
-          "'self'",
-          "'unsafe-inline'",
-          "https://cdn.jsdelivr.net",
-          "https://cdnjs.cloudflare.com"
-        ],
-        connectSrc: [
-          "'self'",
-          "wss:",
-          "https://school-queue-system-frontend.vercel.app",
-          "https://school-queue-system-backend.onrender.com"
-        ],
-        imgSrc: ["'self'", "data:", "blob:", "https:"],
-        styleSrc: [
-          "'self'",
-          "'unsafe-inline'",
-          "https://fonts.googleapis.com",
-          "https://cdnjs.cloudflare.com"
-        ],
-        fontSrc: [
-          "'self'",
-          "https://fonts.gstatic.com",
-          "https://cdnjs.cloudflare.com"
-        ],
-        objectSrc: ["'none'"],
-        frameSrc: ["'none'"]
-      }
+  helmet.contentSecurityPolicy({
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: [
+        "'self'",
+        "'unsafe-inline'",
+        "https://cdn.jsdelivr.net",
+        "https://cdnjs.cloudflare.com"
+      ],
+      connectSrc: [
+        "'self'",
+        "wss:",
+        "https://school-queue-system-frontend.vercel.app",
+        "https://school-queue-system-backend.onrender.com"
+      ],
+      imgSrc: ["'self'", "data:", "blob:", "https:"],
+      styleSrc: [
+        "'self'",
+        "'unsafe-inline'",
+        "https://fonts.googleapis.com",
+        "https://cdnjs.cloudflare.com"
+      ],
+      fontSrc: [
+        "'self'",
+        "https://fonts.gstatic.com",
+        "https://cdnjs.cloudflare.com"
+      ],
+      objectSrc: ["'none'"],
+      frameSrc: ["'none'"]
     }
   })
 );
