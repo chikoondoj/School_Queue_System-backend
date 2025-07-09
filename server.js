@@ -162,6 +162,15 @@ app.use(
   })
 );
 
+app.get("/api/test-cookie", (req, res) => {
+  res.cookie("checkCookie", "works", {
+    httpOnly: true,
+    secure: true,
+    sameSite: "none",
+  });
+  res.json({ message: "Cookie set" });
+});
+
 app.use(limiter);
 app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev"));
 app.use(
