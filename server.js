@@ -125,10 +125,6 @@ app.use(
   })
 );
 
-// const helmet = require('helmet');
-
-const helmet = require("helmet");
-
 app.use(helmet()); // basic protections
 
 app.use(
