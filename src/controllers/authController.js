@@ -365,15 +365,26 @@ class AuthController {
       });
 
       try {
-        await ActivityService.logActivity(
-          user.id,
-          "LOGIN",
-          `Successful login from ${req.ip || "unknown IP"}`,
-          { loginTime: new Date(), userAgent: req.headers["user-agent"] }
-        );
+        const logData = {
+          userId: user.id,
+          action: "LOGIN",
+          details: {
+            message: `Successful login from ${req.ip || "unknown IP"}`,
+          },
+          ipAddress: req.ip || null,
+          userAgent: req.headers["user-agent"] || null,
+        };
+
+        const logResult = await ActivityService.logActivity(logData);
+
+        if (!logResult.success) {
+          console.error("Activity logging failed:", logResult.error);
+        }
       } catch (activityError) {
-        console.error("Failed to log login activity:", activityError);
-        // Don't fail the login if activity logging fails
+        console.error(
+          "Unexpected error during activity logging:",
+          activityError
+        );
       }
     } catch (error) {
       console.error("Login error:", error);
