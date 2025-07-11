@@ -846,4 +846,4 @@ class ActivityService {
   }
 }
 
-module.exports = new ActivityService();
+module.exports = ActivityService();
