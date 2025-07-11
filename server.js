@@ -46,20 +46,6 @@ const io = new Server(server, {
   pingInterval: 25000,
 });
 
-// Session middleware configuration
-// const sessionMiddleware = session({
-//   secret: process.env.SESSION_SECRET || "your-secret-key",
-//   resave: false,
-//   saveUninitialized: false,
-//   cookie: {
-//     secure: process.env.NODE_ENV === "production",
-//     httpOnly: true,
-//     maxAge: 24 * 60 * 60 * 1000, // 24 hours
-//     sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-//   },
-//   name: "queueSessionId",
-// });
-
 const pgPool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl:
@@ -126,6 +112,8 @@ app.use(
   })
 );
 
+app.set("trust proxy", 1);
+app.use(sessionMiddleware);
 app.use(helmet());
 
 app.use(
@@ -190,7 +178,6 @@ app.use(
   })
 );
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
-app.use(sessionMiddleware);
 
 // Initialize Socket Service
 const socketService = new SocketService(server, io);
