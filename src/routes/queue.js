@@ -77,7 +77,7 @@ router.get("/activity", authenticateSession, (req, res) => {
 
 router.use("/api/queue", validateSession);
 
-router.get("/api/queue/services", async (req, res) => {
+router.get("/services", async (req, res) => {
   try {
     const services = await prisma.service.findMany({
       where: { isActive: true },
@@ -151,7 +151,7 @@ router.get("/services/detailed", async (req, res) => {
   }
 });
 
-router.get("/api/queue/my-ticket", requireStudent, async (req, res) => {
+router.get("/my-ticket", requireStudent, async (req, res) => {
   try {
     const user = await prisma.user.findUnique({
       where: { studentCode: req.user.studentCode },
@@ -215,7 +215,7 @@ router.get("/api/queue/my-ticket", requireStudent, async (req, res) => {
 });
 
 router.get(
-  "/api/queue/my-ticket/detailed",
+  "/my-ticket/detailed",
   requireStudent,
   async (req, res) => {
     try {
@@ -296,7 +296,7 @@ router.get(
   }
 );
 
-router.get("/api/queue/position/:ticketId", async (req, res) => {
+router.get("/position/:ticketId", async (req, res) => {
   try {
     const { ticketId } = req.params;
 
@@ -353,7 +353,7 @@ router.get("/api/queue/position/:ticketId", async (req, res) => {
   }
 });
 
-router.get("/api/queue/history", requireStudent, async (req, res) => {
+router.get("/history", requireStudent, async (req, res) => {
   try {
     const { limit = 10, offset = 0, serviceId } = req.query;
 
@@ -413,7 +413,7 @@ router.get("/api/queue/history", requireStudent, async (req, res) => {
   }
 });
 
-router.get("/api/queue/statistics", async (req, res) => {
+router.get("/statistics", async (req, res) => {
   try {
     const { period = "7d" } = req.query;
 
@@ -496,7 +496,7 @@ router.get("/api/queue/statistics", async (req, res) => {
   }
 });
 
-router.get("/api/queue/health", async (req, res) => {
+router.get("/health", async (req, res) => {
   try {
     const dbStatus = await prisma.$queryRaw`SELECT 1`;
 
@@ -630,7 +630,7 @@ router.post("/join", requireStudent, async (req, res) => {
 });
 
 router.delete(
-  "/api/queue/leave/:ticketId",
+  "/leave/:ticketId",
   requireStudent,
   async (req, res) => {
     try {
@@ -685,7 +685,7 @@ router.delete(
   }
 );
 
-router.get("/api/queue/current", async (req, res) => {
+router.get("/current", async (req, res) => {
   try {
     const services = await prisma.service.findMany({
       where: { isActive: true },
@@ -738,7 +738,7 @@ router.get("/api/queue/current", async (req, res) => {
   }
 });
 
-router.get("/api/queue/status/:serviceId", async (req, res) => {
+router.get("/status/:serviceId", async (req, res) => {
   try {
     const { serviceId } = req.params;
 
