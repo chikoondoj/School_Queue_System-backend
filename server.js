@@ -100,15 +100,16 @@ const apiLimiter = rateLimit({
 });
 
 // Middleware setup
+const allowedOrigins =
+  process.env.NODE_ENV === "production"
+    ? [process.env.CLIENT_URL]
+    : ["http://localhost:3000", "http://localhost:3001"];
+
 app.use(
   cors({
-    origin:
-      process.env.NODE_ENV === "production"
-        ? process.env.CLIENT_URL
-        : ["http://localhost:3000", "http://localhost:3001"],
+    origin: allowedOrigins,
+    methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
   })
 );
 
