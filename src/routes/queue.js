@@ -103,7 +103,7 @@ router.get("/api/queue/services", async (req, res) => {
   }
 });
 
-router.get("/api/queue/services/detailed", async (req, res) => {
+router.get("/services/detailed", async (req, res) => {
   try {
     const services = await prisma.service.findMany({
       where: { isActive: true },
