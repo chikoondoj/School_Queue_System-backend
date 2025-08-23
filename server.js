@@ -52,6 +52,7 @@ const pgPool = new Pool({
     process.env.NODE_ENV === "production"
       ? { rejectUnauthorized: false }
       : false,
+  family: 4,
 });
 
 const sessionMiddleware = session({
