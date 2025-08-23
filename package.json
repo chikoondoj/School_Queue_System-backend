@@ -37,7 +37,8 @@
     "pg-simple": "^0.2.2",
     "sequelize": "^6.37.7",
     "socket.io": "^4.8.1",
-    "sqlite3": "^5.1.7"
+    "sqlite3": "^5.1.7",
+    "supabase": "^2.34.3"
   },
   "devDependencies": {
     "nodemon": "^3.1.10",
