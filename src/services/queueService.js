@@ -696,27 +696,39 @@ class QueueService {
   }
 
   async getAllServices() {
-    const services = [];
+  // Fetch all services from the database
+  const servicesFromDb = await prisma.service.findMany({
+    select: {
+      id: true,                // <- the real database ID
+      name: true,
+      description: true,
+      estimatedTime: true,
+      // availableWindows: true,
+      isActive: true,
+    },
+  });
 
-    for (const serviceType of Object.values(this.SERVICES)) {
-      const stats = await this.getQueueStats(serviceType);
-      const isAvailable = await this.isServiceAvailable(serviceType);
+  // Add stats and extra info per service
+  const services = [];
 
-      const name = this.getServiceDisplayName(serviceType)
-      services.push({
-        name,
-        // type: serviceType,
-        // name: this.getServiceDisplayName(serviceType),
-        description: this.getServiceDescription(serviceType),
-        stats,
-        isAvailable,
-        operatingHours: this.getOperatingHours(serviceType),
-        lastUpdated: new Date().toISOString(),
-      });
-    }
+  for (const service of servicesFromDb) {
+    const stats = await this.getQueueStats(service.id);       // use id for stats
+    const isAvailable = await this.isServiceAvailable(service.id);
 
-    return services;
+    services.push({
+      id: service.id,            // keep the database ID
+      name: service.name,
+      description: service.description,
+      stats,
+      isAvailable,
+      operatingHours: this.getOperatingHours(service.id),
+      lastUpdated: new Date().toISOString(),
+    });
   }
+
+  return services;
+}
+
 
   async getQueueUpdates(serviceType) {
     const queue = await this.getQueueByService(serviceType);
