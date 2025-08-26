@@ -647,6 +647,7 @@ const updateQueueStatistics = async () => {
   try {
     console.log("🔄 Updating queue statistics...");
     const services = await QueueService.getAllServices();
+    console.log("Fetched services:", services);
 
     for (const service of services) {
       try {
@@ -669,6 +670,11 @@ const updateQueueStatistics = async () => {
           );
           continue;
         }
+
+        console.log("Upserting stats for serviceId:", service.id);
+const serviceExists = await prisma.service.findUnique({ where: { id: service.id } });
+console.log("Service exists in DB:", serviceExists);
+
 
         // Update statistics in database
         await QueueStatistics.upsert({

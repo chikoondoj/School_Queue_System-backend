@@ -699,14 +699,15 @@ class QueueService {
   // Fetch all services from the database
   const servicesFromDb = await prisma.service.findMany({
     select: {
-      id: true,                // <- the real database ID
-      name: true,
+      id: true,
+      name:true,                
       description: true,
       estimatedTime: true,
       // availableWindows: true,
       isActive: true,
     },
   });
+  console.log("Services from DB:", servicesFromDb);
 
   // Add stats and extra info per service
   const services = [];
@@ -716,7 +717,7 @@ class QueueService {
     const isAvailable = await this.isServiceAvailable(service.id);
 
     services.push({
-      id: service.id,            // keep the database ID
+      id: service.id,            
       name: service.name,
       description: service.description,
       stats,
