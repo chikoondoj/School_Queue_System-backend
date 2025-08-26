@@ -240,8 +240,8 @@ router.get(
           user: {
             select: {
               studentCode: true,
-              firstName: true,
-              lastName: true,
+              name: true,
+              // lastName: true,
               email: true,
             },
           },
