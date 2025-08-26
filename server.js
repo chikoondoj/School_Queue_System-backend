@@ -182,7 +182,7 @@ app.use(
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
 // Initialize Socket Service
-const socketService = new SocketService(server, io);
+const socketService = new SocketService(io);
 
 // Make socket service available to routes
 app.locals.socketService = socketService;
