@@ -702,9 +702,12 @@ class QueueService {
       const stats = await this.getQueueStats(serviceType);
       const isAvailable = await this.isServiceAvailable(serviceType);
 
+      const name = this.getServiceDisplayName(serviceType)
       services.push({
-        type: serviceType,
-        name: this.getServiceDisplayName(serviceType),
+        id: name,
+        name,
+        // type: serviceType,
+        // name: this.getServiceDisplayName(serviceType),
         description: this.getServiceDescription(serviceType),
         stats,
         isAvailable,
