@@ -16,7 +16,7 @@ const {
   validateUpdateProfile,
   validateChangePassword,
   validateAdminLogin,
-  validateAdminRegister
+  validateAdminRegister,
 } = require("../middleware/validation");
 
 const prisma = new PrismaClient();
@@ -44,8 +44,12 @@ const debugSession = (req, res, next) => {
 
 router.post("/register", validateRegister, authController.register);
 router.post("/login", validateLogin, debugSession, authController.login);
-router.post('/admin-register', validateAdminRegister, authController.adminRegister);
-router.post('/admin-login', validateAdminLogin, authController.adminLogin);
+router.post(
+  "/admin-register",
+  validateAdminRegister,
+  authController.adminRegister
+);
+router.post("/admin-login", validateAdminLogin, authController.adminLogin);
 
 router.get("/profile", authenticateSession, authController.getProfile);
 router.put(
@@ -214,87 +218,83 @@ router.get("/my-ticket", requireStudent, async (req, res) => {
   }
 });
 
-router.get(
-  "/my-ticket/detailed",
-  requireStudent,
-  async (req, res) => {
-    try {
-      const user = await prisma.user.findUnique({
-        where: { studentCode: req.user.studentCode },
+router.get("/my-ticket/detailed", requireStudent, async (req, res) => {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { studentCode: req.user.studentCode },
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
       });
+    }
 
-      if (!user) {
-        return res.status(404).json({
-          success: false,
-          message: "User not found",
-        });
-      }
-
-      const ticket = await prisma.tickets.findFirst({
-        where: {
-          userId: user.id,
-          status: { in: ["WAITING", "CALLED", "IN_PROGRESS"] },
-        },
-        include: {
-          service: true,
-          user: {
-            select: {
-              studentCode: true,
-              name: true,
-              // lastName: true,
-              email: true,
-            },
+    const ticket = await prisma.tickets.findFirst({
+      where: {
+        userId: user.id,
+        status: { in: ["WAITING", "CALLED", "IN_PROGRESS"] },
+      },
+      include: {
+        service: true,
+        user: {
+          select: {
+            studentCode: true,
+            name: true,
+            // lastName: true,
+            email: true,
           },
         },
-        orderBy: { createdAt: "desc" },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    if (!ticket) {
+      return res.json({
+        success: true,
+        ticket: null,
+        message: "No active ticket found",
       });
+    }
 
-      if (!ticket) {
-        return res.json({
-          success: true,
-          ticket: null,
-          message: "No active ticket found",
-        });
-      }
-
-      const position =
-        (await prisma.tickets.count({
-          where: {
-            serviceId: ticket.serviceId,
-            status: "WAITING",
-            createdAt: { lt: ticket.createdAt },
-          },
-        })) + 1;
-
-      const totalInQueue = await prisma.tickets.count({
+    const position =
+      (await prisma.tickets.count({
         where: {
           serviceId: ticket.serviceId,
           status: "WAITING",
+          createdAt: { lt: ticket.createdAt },
         },
-      });
+      })) + 1;
 
-      const estimatedWaitTime = position * (ticket.service.estimatedTime || 15);
+    const totalInQueue = await prisma.tickets.count({
+      where: {
+        serviceId: ticket.serviceId,
+        status: "WAITING",
+      },
+    });
 
-      res.json({
-        success: true,
-        ticket: {
-          ...ticket,
-          position: ticket.status === "WAITING" ? position : null,
-          totalInQueue,
-          estimatedWaitTime,
-          queuedAt: ticket.createdAt,
-          waitTime: Math.floor((new Date() - ticket.createdAt) / 1000 / 60),
-        },
-      });
-    } catch (error) {
-      console.error("Error fetching detailed ticket:", error);
-      res.status(500).json({
-        success: false,
-        message: "Failed to fetch detailed ticket",
-      });
-    }
+    const estimatedWaitTime = position * (ticket.service.estimatedTime || 15);
+
+    res.json({
+      success: true,
+      ticket: {
+        ...ticket,
+        position: ticket.status === "WAITING" ? position : null,
+        totalInQueue,
+        estimatedWaitTime,
+        queuedAt: ticket.createdAt,
+        waitTime: Math.floor((new Date() - ticket.createdAt) / 1000 / 60),
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching detailed ticket:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch detailed ticket",
+    });
   }
-);
+});
 
 router.get("/position/:ticketId", async (req, res) => {
   try {
@@ -459,7 +459,9 @@ router.get("/statistics/summary", async (req, res) => {
     const serviceStats = await prisma.service.findMany({
       include: {
         tickets: {
-          where: { createdAt: { gte: dateFilter } },
+          where: {
+            status: { in: ["WAITING", "CALLED", "IN_PROGRESS"] },
+          },
         },
       },
     });
@@ -609,7 +611,7 @@ router.post("/join", requireStudent, async (req, res) => {
         },
       },
     });
-    console.log(position)
+    console.log(position);
     await prisma.tickets.update({
       where: { id: ticket.id },
       data: {},
@@ -629,61 +631,57 @@ router.post("/join", requireStudent, async (req, res) => {
   }
 });
 
-router.delete(
-  "/leave/:ticketId",
-  requireStudent,
-  async (req, res) => {
-    try {
-      const { ticketId } = req.params;
-      const studentCode = req.user.studentCode;
+router.delete("/leave/:ticketId", requireStudent, async (req, res) => {
+  try {
+    const { ticketId } = req.params;
+    const studentCode = req.user.studentCode;
 
-      const user = await prisma.user.findUnique({
-        where: { studentCode: studentCode },
-      });
+    const user = await prisma.user.findUnique({
+      where: { studentCode: studentCode },
+    });
 
-      if (!user) {
-        return res.status(404).json({
-          success: false,
-          message: "User not found",
-        });
-      }
-
-      const ticket = await prisma.tickets.findFirst({
-        where: {
-          id: ticketId,
-          userId: user.id,
-          status: { in: ["WAITING", "CALLED", "IN_PROGRESS"] },
-        },
-      });
-
-      if (!ticket) {
-        return res.status(400).json({
-          success: false,
-          message: "No active ticket found",
-        });
-      }
-
-      await prisma.tickets.update({
-        where: { id: ticket.id },
-        data: {
-          status: "CANCELLED",
-          updatedAt: new Date(),
-        },
-      });
-
-      res.json({
-        success: true,
-        message: "Successfully left the queue",
-      });
-    } catch (error) {
-      console.error("Error leaving queue:", error);
-      res.status(500).json({
+    if (!user) {
+      return res.status(404).json({
         success: false,
-        message: "Failed to leave queue",
+        message: "User not found",
       });
     }
+
+    const ticket = await prisma.tickets.findFirst({
+      where: {
+        id: ticketId,
+        userId: user.id,
+        status: { in: ["WAITING", "CALLED", "IN_PROGRESS"] },
+      },
+    });
+
+    if (!ticket) {
+      return res.status(400).json({
+        success: false,
+        message: "No active ticket found",
+      });
+    }
+
+    await prisma.tickets.update({
+      where: { id: ticket.id },
+      data: {
+        status: "CANCELLED",
+        updatedAt: new Date(),
+      },
+    });
+
+    res.json({
+      success: true,
+      message: "Successfully left the queue",
+    });
+  } catch (error) {
+    console.error("Error leaving queue:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to leave queue",
+    });
   }
-);
+});
 
 router.get("/current", async (req, res) => {
   try {
