@@ -704,7 +704,6 @@ class QueueService {
 
       const name = this.getServiceDisplayName(serviceType)
       services.push({
-        id: name,
         name,
         // type: serviceType,
         // name: this.getServiceDisplayName(serviceType),

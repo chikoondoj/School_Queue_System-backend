@@ -651,8 +651,8 @@ const updateQueueStatistics = async () => {
     for (const service of services) {
       try {
         const [activeTickets, completedTickets] = await Promise.all([
-          QueueService.getActiveTicketsForService(service.id),
-          QueueService.getCompletedTicketsForService(service.id, 24), // Last 24 hours
+          QueueService.getActiveTicketsForService(service.name),
+          QueueService.getCompletedTicketsForService(service.name, 24), // Last 24 hours
         ]);
 
         const averageServiceTime =
@@ -667,12 +667,12 @@ const updateQueueStatistics = async () => {
           console.warn(
             "Skipping stats update due to missing service or service.id"
           );
-          return;
+          continue;
         }
 
         // Update statistics in database
         await QueueStatistics.upsert({
-          serviceId: service.id,
+          serviceId: service.name,
           currentQueueLength: activeTickets.length,
           estimatedWaitTime,
           averageServiceTime,
