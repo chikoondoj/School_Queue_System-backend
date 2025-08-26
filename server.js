@@ -663,7 +663,7 @@ const updateQueueStatistics = async () => {
           service.availableWindows || 1
         );
 
-        if (!service || !service.id) {
+        if (!service || !service.name) {
           console.warn(
             "Skipping stats update due to missing service or service.id"
           );
@@ -685,7 +685,7 @@ const updateQueueStatistics = async () => {
         // Broadcast real-time updates
         const updateData = {
           type: "STATISTICS_UPDATE",
-          serviceId: service.id,
+          serviceId: service.name,
           data: {
             currentQueueLength: activeTickets.length,
             estimatedWaitTime,
