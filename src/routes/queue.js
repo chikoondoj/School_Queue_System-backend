@@ -413,7 +413,7 @@ router.get("/history", requireStudent, async (req, res) => {
   }
 });
 
-router.get("/statistics", async (req, res) => {
+router.get("/statistics/summary", async (req, res) => {
   try {
     const { period = "7d" } = req.query;
 
