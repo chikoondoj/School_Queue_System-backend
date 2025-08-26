@@ -672,7 +672,7 @@ const updateQueueStatistics = async () => {
 
         // Update statistics in database
         await QueueStatistics.upsert({
-          serviceId: service.name,
+          serviceId: service.id,
           currentQueueLength: activeTickets.length,
           estimatedWaitTime,
           averageServiceTime,
@@ -685,7 +685,7 @@ const updateQueueStatistics = async () => {
         // Broadcast real-time updates
         const updateData = {
           type: "STATISTICS_UPDATE",
-          serviceId: service.name,
+          serviceId: service.id,
           data: {
             currentQueueLength: activeTickets.length,
             estimatedWaitTime,
