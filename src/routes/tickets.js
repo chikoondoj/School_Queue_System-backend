@@ -3,7 +3,7 @@ const router = express.Router();
 const { Models } = require("../models");
 
 // Get all tickets (optionally filtered)
-router.get("/tickets/all", async (req, res) => {
+router.get("/all", async (req, res) => {
   try {
     const { status, serviceId, userId } = req.query;
     const filters = {};
@@ -19,7 +19,7 @@ router.get("/tickets/all", async (req, res) => {
 });
 
 // Get all active tickets (optionally filtered)
-router.get("/tickets/active", async (req, res) => {
+router.get("/active", async (req, res) => {
   try {
     const { serviceId, userId } = req.query;
     const filters = {};
@@ -34,7 +34,7 @@ router.get("/tickets/active", async (req, res) => {
 });
 
 // Get a single ticket by ID
-router.get("/tickets/:id", async (req, res) => {
+router.get("/:id", async (req, res) => {
   try {
     const ticket = await Models.getTicketById(req.params.id);
     if (!ticket) return res.status(404).json({ success: false, message: "Ticket not found" });
@@ -45,7 +45,7 @@ router.get("/tickets/:id", async (req, res) => {
 });
 
 // Cancel a ticket
-router.post("/tickets/:id/cancel", async (req, res) => {
+router.post("/:id/cancel", async (req, res) => {
   try {
     const ticket = await Models.cancelTicket(req.params.id);
     res.json({ success: true, ticket });
@@ -55,7 +55,7 @@ router.post("/tickets/:id/cancel", async (req, res) => {
 });
 
 // Delete a ticket
-router.delete("/tickets/:id", async (req, res) => {
+router.delete("/:id", async (req, res) => {
   try {
     await Models.deleteTicket(req.params.id);
     res.json({ success: true, message: "Ticket deleted" });
