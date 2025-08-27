@@ -1,12 +1,8 @@
 const validateRegister = (req, res, next) => {
-  const { studentCode, name, course, year, password, email } = req.body;
+  const { name, course, year, password, email } = req.body;
   const errors = [];
 
   // Required field validation
-  if (!studentCode || studentCode.trim() === "") {
-    errors.push("Student code is required");
-  }
-
   if (!name || name.trim() === "") {
     errors.push("Name is required");
   }
@@ -33,11 +29,6 @@ const validateRegister = (req, res, next) => {
     }
   }
 
-  // Student code format validation (adjust pattern as needed)
-  if (studentCode && !/^[A-Za-z0-9-]+$/.test(studentCode)) {
-    errors.push("Student code can only contain letters, numbers, and hyphens");
-  }
-
   if (errors.length > 0) {
     return res.status(400).json({
       success: false,
@@ -48,6 +39,9 @@ const validateRegister = (req, res, next) => {
 
   next();
 };
+
+module.exports = validateRegister;
+
 
 const validateAdminRegister = (req, res, next) => {
   const { name, email, password } = req.body;
