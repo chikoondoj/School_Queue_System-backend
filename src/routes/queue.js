@@ -3,6 +3,7 @@ const path = require("path");
 const router = express.Router();
 const { PrismaClient } = require("@prisma/client");
 const authController = require("../controllers/authController");
+const { updateQueuePositions } = require("../services/queueService");
 const {
   authenticateSession,
   requireAuth,
