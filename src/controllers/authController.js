@@ -34,7 +34,7 @@ class AuthController {
           success: false,
           message: "Missing required fields",
           received: {
-            studentCode: !!studentCode,
+            // studentCode: !!studentCode,
             name: !!name,
             course: !!course,
             year: !!year,
