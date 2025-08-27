@@ -14,7 +14,7 @@ class AuthController {
       console.log("Request headers:", req.headers);
       console.log("Raw request body:", req.body);
 
-      const { studentCode, name, course, year, password, email, phone } =
+      const { name, course, year, password, email, phone } =
         req.body;
 
       console.log("Extracted fields:", {
@@ -28,7 +28,7 @@ class AuthController {
       });
 
       // Validate required fields
-      if (!studentCode || !name || !course || !year || !password) {
+      if (!name || !course || !year || !password) {
         console.log("Validation failed - missing required fields");
         return res.status(400).json({
           success: false,
@@ -42,24 +42,24 @@ class AuthController {
           },
         });
       }
-
-      console.log("Checking for existing user with studentCode:", studentCode);
-
-      // Check if student already exists
-      const existingUser = await prisma.user.findUnique({
-        where: { studentCode },
+      
+      //Generate next studentCode
+      const lastUser = await prisma.user.findFirst({
+        orderBy: { id: "desc" },
+        select: { studentCode: true },
       });
 
-      if (existingUser) {
-        console.log("User already exists:", existingUser.id);
-        return res.status(400).json({
-          success: false,
-          message: "Student code already exists",
-        });
+      let studentCode;
+      if (lastUser && lastUser.studentCode) {
+        const num = parseInt(lastUser.studentCode.replace("STU", ""), 10);
+        studentCode = "STU" + String(num + 1).padStart(3, "0");
+      } else {
+        studentCode = "STU001";
       }
 
-      console.log("No existing user found, proceeding with registration");
+      console.log("Generated studentCode:", studentCode);
 
+      //Hash Password
       const hashedPassword = await bcrypt.hash(password, 10);
       console.log("Password hashed successfully");
 
@@ -74,8 +74,7 @@ class AuthController {
       };
 
       console.log("About to create user with data:", {
-        ...userData,
-        password: "***",
+        ...userData
       });
 
       // Check Prisma connection
@@ -108,7 +107,7 @@ class AuthController {
 
       console.log("Verification - User found in database:", savedUser);
 
-      // Also check total user count
+      //Check total user count
       const totalUsers = await prisma.user.count();
       console.log("Total users in database:", totalUsers);
 
