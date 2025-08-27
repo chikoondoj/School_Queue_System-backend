@@ -14,8 +14,7 @@ class AuthController {
       console.log("Request headers:", req.headers);
       console.log("Raw request body:", req.body);
 
-      const { name, course, year, password, email, phone } =
-        req.body;
+      const { name, course, year, password, email, phone } = req.body;
 
       console.log("Extracted fields:", {
         // studentCode,
@@ -42,7 +41,14 @@ class AuthController {
           },
         });
       }
-      
+
+      if (existingEmailUser) {
+        return res.status(400).json({
+          success: false,
+          message: "Email is already registered",
+        });
+      }
+
       //Generate next studentCode
       const lastUser = await prisma.user.findFirst({
         orderBy: { id: "desc" },
@@ -74,7 +80,7 @@ class AuthController {
       };
 
       console.log("About to create user with data:", {
-        ...userData
+        ...userData,
       });
 
       // Check Prisma connection
