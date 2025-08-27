@@ -42,6 +42,13 @@ class AuthController {
         });
       }
 
+      let existingEmailUser = null;
+      if (email) {
+        existingEmailUser = await prisma.user.findUnique({
+          where: { email },
+        });
+      }
+
       if (existingEmailUser) {
         return res.status(400).json({
           success: false,
@@ -253,6 +260,7 @@ class AuthController {
       console.log("Identifier:", identifier);
       console.log("Is Admin:", isAdmin);
       console.log("Password provided:", !!password);
+      console.log("Login request body:", req.body);
 
       if (!identifier || !password) {
         return res.status(400).json({
@@ -297,13 +305,10 @@ class AuthController {
 
       // For student login
       const user = await prisma.user.findFirst({
-      where: {
-        OR: [
-          { studentCode: identifier },
-          { email: identifier }
-        ]
-      }
-    });
+        where: {
+          OR: [{ studentCode: identifier }, { email: identifier }],
+        },
+      });
       console.log("User found:", !!user);
       if (user) {
         console.log("User details:", {
@@ -655,58 +660,57 @@ class AuthController {
     }
   }
 
-async resetStudentPassword(req, res) {
-  try {
-    // Only admin can access
-    if (!req.user || req.user.role !== "ADMIN") {
-      return res.status(403).json({
+  async resetStudentPassword(req, res) {
+    try {
+      // Only admin can access
+      if (!req.user || req.user.role !== "ADMIN") {
+        return res.status(403).json({
+          success: false,
+          message: "Access denied",
+        });
+      }
+
+      const { studentCode } = req.body;
+      if (!studentCode) {
+        return res.status(400).json({
+          success: false,
+          message: "Student code is required",
+        });
+      }
+
+      const student = await prisma.user.findUnique({
+        where: { studentCode },
+      });
+
+      if (!student) {
+        return res.status(404).json({
+          success: false,
+          message: "Student not found",
+        });
+      }
+
+      const defaultPassword = "54321";
+      const hashedPassword = await bcrypt.hash(defaultPassword, 12);
+
+      await prisma.user.update({
+        where: { id: student.id },
+        data: { password: hashedPassword },
+      });
+
+      res.json({
+        success: true,
+        message: `Password for ${student.name} has been reset to ${defaultPassword}`,
+      });
+    } catch (error) {
+      console.error("Reset password error:", error);
+      res.status(500).json({
         success: false,
-        message: "Access denied",
+        message: "Failed to reset password",
+        error:
+          process.env.NODE_ENV === "development" ? error.message : undefined,
       });
     }
-
-    const { studentCode } = req.body;
-    if (!studentCode) {
-      return res.status(400).json({
-        success: false,
-        message: "Student code is required",
-      });
-    }
-
-    const student = await prisma.user.findUnique({
-      where: { studentCode },
-    });
-
-    if (!student) {
-      return res.status(404).json({
-        success: false,
-        message: "Student not found",
-      });
-    }
-
-    const defaultPassword = "54321";
-    const hashedPassword = await bcrypt.hash(defaultPassword, 12);
-
-    await prisma.user.update({
-      where: { id: student.id },
-      data: { password: hashedPassword },
-    });
-
-    res.json({
-      success: true,
-      message: `Password for ${student.name} has been reset to ${defaultPassword}`,
-    });
-  } catch (error) {
-    console.error("Reset password error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to reset password",
-      error:
-        process.env.NODE_ENV === "development" ? error.message : undefined,
-    });
   }
-}
-
 
   // Get user activity history
   async getActivity(req, res) {
