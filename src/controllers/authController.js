@@ -18,7 +18,7 @@ class AuthController {
         req.body;
 
       console.log("Extracted fields:", {
-        studentCode,
+        // studentCode,
         name,
         course,
         year,
