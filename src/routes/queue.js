@@ -670,6 +670,8 @@ router.delete("/leave/:ticketId", requireStudent, async (req, res) => {
       },
     });
 
+    await updateQueuePositions(ticket.serviceType);
+
     res.json({
       success: true,
       message: "Successfully left the queue",
