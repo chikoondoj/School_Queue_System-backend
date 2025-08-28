@@ -42,19 +42,19 @@ class AuthController {
         });
       }
 
-      // let existingEmailUser = null;
-      // if (email) {
-      //   existingEmailUser = await prisma.user.findUnique({
-      //     where: { email },
-      //   });
-      // }
+      let existingEmailUser = null;
+      if (email) {
+        existingEmailUser = await prisma.user.findUnique({
+          where: { email },
+        });
+      }
 
-      // if (existingEmailUser) {
-      //   return res.status(400).json({
-      //     success: false,
-      //     message: "Email is already registered",
-      //   });
-      // }
+      if (existingEmailUser) {
+        return res.status(400).json({
+          success: false,
+          message: "Email is already registered",
+        });
+      }
 
       //Generate next studentCode
       const lastUser = await prisma.user.findFirst({
