@@ -80,7 +80,9 @@ const validateLogin = (req, res, next) => {
   const { studentCode, email, password } = req.body;
   const errors = [];
 
-  if ((!studentCode || studentCode.trim() === "") && (!email || email.trim() === "")) {
+  if (!studentCode || studentCode.trim() === "")
+    //  && (!email || email.trim() === "")) 
+  {
     errors.push("Email or student code is required");
   }
 
