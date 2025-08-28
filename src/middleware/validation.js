@@ -77,12 +77,10 @@ const validateAdminRegister = (req, res, next) => {
 };
 
 const validateLogin = (req, res, next) => {
-  const { studentCode, email, password } = req.body;
+  const { identifier, password } = req.body;
   const errors = [];
 
-  if (!studentCode || studentCode.trim() === "")
-    //  && (!email || email.trim() === "")) 
-  {
+  if (!identifier || identifier.trim() === "") {
     errors.push("Email or student code is required");
   }
 
