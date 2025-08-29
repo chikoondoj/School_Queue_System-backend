@@ -1,5 +1,5 @@
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
   binaryTargets = ["native", "debian-openssl-3.0.x"]
 }
 
@@ -10,7 +10,7 @@ datasource db {
 
 model User {
   id            String          @id @default(cuid())
-  email         String         @unique
+  email         String @unique
   password      String
   name          String
   course        String?
@@ -18,9 +18,9 @@ model User {
   createdAt     DateTime        @default(now())
   studentCode   String?         @unique
   updatedAt     DateTime        @updatedAt
+  adminCode     String?         @unique
   isActive      Boolean?        @default(true)
   role          Role            @default(STUDENT)
-  adminCode     String?         @unique
   activities    Activity[]
   activity_logs activity_logs[]
   tickets       Tickets[]
@@ -31,7 +31,7 @@ model User {
 
 model Service {
   id               String            @id @default(cuid())
-  name             String @unique
+  name             String            @unique
   description      String?
   createdAt        DateTime          @default(now())
   isActive         Boolean           @default(true)
@@ -55,7 +55,7 @@ model Tickets {
   completedAt   DateTime?
   userId        String
   serviceId     String
-  isNew         Boolean         @map("isnew") @default(true)
+  isNew         Boolean         @default(true) @map("isnew")
   activity_logs activity_logs[]
   service       Service         @relation(fields: [serviceId], references: [id], onDelete: Cascade)
   user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
