@@ -309,6 +309,29 @@ async function main() {
     console.log(`✅ Created/Found activity: ${activity.title}`);
   }
 
+
+const prisma = new PrismaClient();
+
+async function main() {
+  const email = "admin@schooldb.com";
+  const password = "SuperAdmin@123";
+
+  // hash the password
+  const hashedPassword = await bcrypt.hash(password, 10);
+
+  await prisma.user.upsert({
+    where: { email },
+    update: {},
+    create: {
+      email,
+      password: hashedPassword,
+      role: "ADMIN",
+    },
+  });
+
+  console.log("✅ Admin user ensured:", email);
+}
+
   console.log('🎉 Database seeding completed!');
   console.log('\n📝 Default Login Credentials:');
   console.log('Admin: ADMIN001 / admin123');
