@@ -1,5 +1,6 @@
 const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcryptjs');
+const cuid = require('cuid');
 
 const prisma = new PrismaClient();
 
@@ -59,19 +60,26 @@ async function main() {
   }
 
   // Create default admin user
-  const adminPassword = await bcrypt.hash('admin123', 12);
-  const admin = await prisma.user.upsert({
-    where: { studentCode: 'ADMIN001' },
-    update: {}, // Don't update if exists to preserve any changes
+  async function main() {
+  const email = "admin@schooldb.com";
+  const password = "SuperAdmin@123";
+
+  // hash the password
+  const hashedPassword = await bcrypt.hash(password, 10);
+
+  await prisma.user.upsert({
+    where: { email },
+    update: {},
     create: {
-      studentCode: 'ADMIN001',
-      name: 'System Administrator',
-      course: 'Administration',
-      year: 1,
-      password: adminPassword,
-      role: 'ADMIN'
-    }
+      email,
+      name: "Default Amin",
+      password: hashedPassword,
+      role: "ADMIN",
+    },
   });
+
+  console.log("✅ Admin user ensured:", email);
+}
   console.log('👤 Created/Found admin user: ADMIN001 / admin123');
 
   // Create sample students
@@ -81,28 +89,32 @@ async function main() {
       name: 'John Doe',
       course: 'Computer Science',
       year: 2,
-      password: 'student123'
+      password: 'student123',
+      email: "samplestudentemail.@gmail.com"
     },
     {
       studentCode: 'STU002',
       name: 'Jane Smith',
       course: 'Business Administration',
       year: 3,
-      password: 'student123'
+      password: 'student123',
+      email: "samplestudentemail1.@gmail.com"
     },
     {
       studentCode: 'STU003',
       name: 'Mike Johnson',
       course: 'Engineering',
       year: 1,
-      password: 'student123'
+      password: 'student123',
+      email: "samplestudentemail2.@gmail.com"
     },
     {
       studentCode: 'STU004',
       name: 'Sarah Wilson',
       course: 'Mathematics',
       year: 2,
-      password: 'student123'
+      password: 'student123',
+      email: "samplestudentemail3.@gmail.com"
     }
   ];
 
@@ -299,38 +311,16 @@ async function main() {
   ];
 
   for (const activityData of activities) {
+    const id = activityData.id || cuid()
     const activity = await prisma.activity.upsert({
-      where: { 
-        title: activityData.title 
+      where: { id 
       },
-      update: {}, // Don't update if exists to preserve any changes
-      create: activityData
+      update: {},
+      create: {...activityData, id}
     });
-    console.log(`✅ Created/Found activity: ${activity.title}`);
+    console.log(`✅ Created/Found activity: ${activity.id}`);
   }
 
-
-// const prisma = new PrismaClient();
-
-async function main() {
-  const email = "admin@schooldb.com";
-  const password = "SuperAdmin@123";
-
-  // hash the password
-  const hashedPassword = await bcrypt.hash(password, 10);
-
-  await prisma.user.upsert({
-    where: { email },
-    update: {},
-    create: {
-      email,
-      password: hashedPassword,
-      role: "ADMIN",
-    },
-  });
-
-  console.log("✅ Admin user ensured:", email);
-}
 
   console.log('🎉 Database seeding completed!');
   console.log('\n📝 Default Login Credentials:');
