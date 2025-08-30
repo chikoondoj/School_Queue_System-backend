@@ -310,7 +310,7 @@ async function main() {
   }
 
 
-const prisma = new PrismaClient();
+// const prisma = new PrismaClient();
 
 async function main() {
   const email = "admin@schooldb.com";
