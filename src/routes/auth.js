@@ -11,6 +11,7 @@ const {
   validateUpdateProfile,
   validateAdminRegister,
   validateAdminLogin,
+  isAdmin,
   validateChangePassword,
   validateResetStudentPassword,
 } = require("../middleware/validation");
@@ -63,6 +64,7 @@ router.put(
 router.put(
   "/change-password",
   authenticateSession,
+  isAdmin,
   validateChangePassword,
   authController.changePassword
 );
