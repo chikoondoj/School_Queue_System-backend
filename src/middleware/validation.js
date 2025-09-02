@@ -238,6 +238,26 @@ const validateJoinQueue = (req, res, next) => {
   next();
 };
 
+const validateResetStudentPassword = (req, res, next) => {
+  const { studentCode } = req.body;
+  const errors = [];
+
+  if (!studentCode || studentCode.trim() === "") {
+    errors.push("Student code is required");
+  }
+
+  if (errors.length > 0) {
+    return res.status(400).json({
+      success: false,
+      message: "Validation failed",
+      errors: errors,
+    });
+  }
+
+  next();
+};
+
+
 module.exports = {
   validateRegister,
   validateLogin,
@@ -246,4 +266,5 @@ module.exports = {
   validateJoinQueue,
   validateAdminRegister,
   validateAdminLogin,
+  validateResetStudentPassword,
 };
