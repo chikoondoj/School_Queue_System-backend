@@ -65,7 +65,6 @@ router.put(
 router.put(
   "/change-password",
   authenticateSession,
-  isAdmin,
   validateChangePassword,
   authController.changePassword
 );
