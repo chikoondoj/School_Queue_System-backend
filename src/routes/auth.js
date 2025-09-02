@@ -76,6 +76,11 @@ router.post(
   authController.resetStudentPassword
 );
 
+router.post('/logout', (req, res) => {
+  // Client should remove token from localStorage/sessionStorage
+  res.json({ success: true, message: 'Logged out successfully' });
+});
+
 // Recent activity for current user - using existing controller
 router.get("/activity", authenticateSession, (req, res) => {
   try {
