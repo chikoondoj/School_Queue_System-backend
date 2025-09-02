@@ -78,7 +78,6 @@ router.post(
 );
 
 router.post('/logout', (req, res) => {
-  // Client should remove token from localStorage/sessionStorage
   res.json({ success: true, message: 'Logged out successfully' });
 });
 
