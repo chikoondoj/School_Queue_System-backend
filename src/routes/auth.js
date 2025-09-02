@@ -73,6 +73,7 @@ router.post(
   "/reset-student-password",
   authenticateSession, // must be logged in
   validateResetStudentPassword, // ensure studentCode is provided
+  isAdmin,
   authController.resetStudentPassword
 );
 
