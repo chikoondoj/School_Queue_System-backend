@@ -647,7 +647,7 @@ const updateQueueStatistics = async () => {
   try {
     console.log("🔄 Updating queue statistics...");
     const services = await QueueService.getAllServices();
-    console.log("Fetched services:", services);
+    // console.log("Fetched services:", services);
 
     for (const service of services) {
       try {
