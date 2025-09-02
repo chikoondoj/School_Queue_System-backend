@@ -49,6 +49,7 @@ router.post("/login", validateLogin, debugSession, authController.login);
 router.post(
   "/admin-register",
   validateAdminRegister,
+  isAdmin,
   authController.adminRegister
 );
 router.post("/admin-login", validateAdminLogin, authController.adminLogin);
