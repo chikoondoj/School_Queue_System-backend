@@ -53,7 +53,7 @@ router.post(
   authController.adminRegister
 );
 router.post("/admin-login", validateAdminLogin, authController.adminLogin);
-router.get("/users", authController.getAllUsers);
+router.get("/users", authController.getAllStudents);
 // Protected routes
 router.get("/profile", authenticateSession, authController.getProfile);
 router.put(
