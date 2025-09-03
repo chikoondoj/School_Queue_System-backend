@@ -408,6 +408,43 @@ class AuthController {
     }
   }
 
+  async getAllUsers(req, res) {
+    try {
+      const users = await prisma.user.findMany();
+
+      // Log each user in the desired format
+      users.forEach((user) => {
+        console.log({
+          id: user.id,
+          studentCode: user.studentCode,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          isActive: user.isActive,
+          hasPassword: !!user.password,
+          isAdmin: user.role === "ADMIN",
+        });
+      });
+
+      // Prepare JSON response
+      const formattedUsers = users.map((user) => ({
+        id: user.id,
+        studentCode: user.studentCode,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        isActive: user.isActive,
+        hasPassword: !!user.password,
+        isAdmin: user.role === "ADMIN",
+      }));
+
+      return res.json(formattedUsers);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      return res.status(500).json({ error: "Failed to fetch users" });
+    }
+  }
+
   // Admin Login
   async adminLogin(req, res) {
     try {
