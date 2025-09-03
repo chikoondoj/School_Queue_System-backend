@@ -3,7 +3,7 @@ const path = require("path");
 const router = express.Router();
 
 const authController = require("../controllers/authController");
-const { authenticateSession } = require("../middleware/auth");
+const { authenticateSession, requireAdmin } = require("../middleware/auth");
 const { getActivitiesByUser } = require("../controllers/activityController");
 const {
   validateRegister,
@@ -71,9 +71,9 @@ router.put(
 
 router.post(
   "/reset-student-password",
-  authenticateSession, // must be logged in
-  validateResetStudentPassword, // ensure studentCode is provided
-  isAdmin,
+  authenticateSession,
+  validateResetStudentPassword,
+  requireAdmin,
   authController.resetStudentPassword
 );
 
