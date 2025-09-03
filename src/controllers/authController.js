@@ -438,7 +438,7 @@ class AuthController {
         isAdmin: user.role === "ADMIN",
       }));
 
-      return res.json(formattedUsers);
+      return res.json({ users:formattedUsers});
     } catch (error) {
       console.error("Error fetching users:", error);
       return res.status(500).json({ error: "Failed to fetch users" });
