@@ -408,9 +408,13 @@ class AuthController {
     }
   }
 
-  async getAllUsers(req, res) {
+  async getAllStudents(req, res) {
     try {
-      const users = await prisma.user.findMany();
+      const users = await prisma.user.findMany({
+        where:{
+          role: "STUDENT",
+        },
+      });
 
       // Log each user in the desired format
       users.forEach((user) => {
