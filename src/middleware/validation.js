@@ -76,60 +76,22 @@ const validateAdminRegister = (req, res, next) => {
   next();
 };
 
-const isAdmin = async (req, res, next) => {
-  try {
-    // 1. Check for Authorization header
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({ 
-        success: false, 
-        message: 'No token provided' 
-      });
-    }
-
-    // 2. Extract token
-    const token = authHeader.split(' ')[1];
-
-    // 3. Verify token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    if (!decoded || !decoded.userId) {
-      return res.status(401).json({ 
-        success: false, 
-        message: 'Invalid token' 
-      });
-    }
-
-    // 4. Fetch user from DB
-    const user = await prisma.user.findUnique({
-      where: { id: decoded.userId },
-    });
-
-    if (!user) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'User not found' 
-      });
-    }
-
-    // 5. Check role
-    if (user.role !== 'ADMIN') {
-      return res.status(403).json({ 
-        success: false, 
-        message: 'Access denied: Admins only' 
-      });
-    }
-
-    // 6. Attach user info to request and proceed
-    req.user = user;
-    next();
-  } catch (error) {
-    console.error('isAdmin middleware error:', error);
-    res.status(401).json({ 
-      success: false, 
-      message: 'Authentication failed', 
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+const isAdmin = (req, res, next) => {
+  if (!req.session || !req.session.user) {
+    return res.status(401).json({
+      success: false,
+      message: 'Not authenticated',
     });
   }
+
+  if (req.session.user.role !== 'ADMIN') {
+    return res.status(403).json({
+      success: false,
+      message: 'Access denied: Admins only',
+    });
+  }
+
+  next();
 };
 
 const validateLogin = (req, res, next) => {
