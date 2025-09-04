@@ -251,6 +251,48 @@ class AuthController {
     }
   }
 
+  async clerkRegister(req, res) {
+    try {
+      const { name, email, password } = req.body;
+
+      if (!name || !email || !password) {
+        return res.status(400).json({ message: "All fields are required" });
+      }
+
+      // Check if email already exists
+      const existingUser = await prisma.user.findUnique({ where: { email } });
+      if (existingUser) {
+        return res.status(400).json({ message: "Email already registered" });
+      }
+
+      // Hash password
+      const hashedPassword = await bcrypt.hash(password, 10);
+
+      // Create clerk user
+      const clerk = await prisma.user.create({
+        data: {
+          name,
+          email,
+          password: hashedPassword,
+          role: "CLERK",
+        },
+      });
+
+      res.status(201).json({
+        message: "Clerk registered successfully",
+        user: {
+          id: clerk.id,
+          name: clerk.name,
+          email: clerk.email,
+          role: clerk.role,
+        },
+      });
+    } catch (error) {
+      console.error("Clerk registration error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  }
+
   // Student/Admin Login
   async login(req, res) {
     try {
@@ -260,7 +302,6 @@ class AuthController {
       console.log("Identifier:", identifier);
       console.log("Is Admin:", isAdmin);
       console.log("Password provided:", !!password);
-      console.log("Login request body:", req.body);
 
       if (!identifier || !password) {
         return res.status(400).json({
@@ -269,9 +310,8 @@ class AuthController {
         });
       }
 
-      // For admin login
+      // Handle special admin login using env vars
       if (isAdmin === true) {
-        console.log("Admin login attempt");
         if (
           identifier === process.env.ADMIN_CODE &&
           password === process.env.ADMIN_PASSWORD
@@ -292,89 +332,73 @@ class AuthController {
               role: "ADMIN",
               studentCode: "admin",
               isAdmin: true,
+              isClerk: false,
             },
           });
         } else {
-          console.log("Invalid admin credentials");
-          return res.status(401).json({
-            success: false,
-            message: "Invalid admin credentials",
-          });
+          return res
+            .status(401)
+            .json({ success: false, message: "Invalid admin credentials" });
         }
       }
 
-      // For student login
+      // Lookup user by studentCode OR email
       const user = await prisma.user.findFirst({
         where: {
           OR: [{ studentCode: identifier }, { email: identifier }],
         },
       });
-      console.log("User found:", !!user);
-      if (user) {
-        console.log("User details:", {
-          id: user.id,
-          studentCode: user.studentCode,
-          name: user.name,
-          role: user.role,
-          isActive: user.isActive,
-          hasPassword: !!user.password,
-          isAdmin: user.role === "ADMIN", // Derive from role
-        });
-      }
 
       if (!user || !user.isActive) {
-        console.log("User not found or not active");
         return res.status(401).json({
           success: false,
           message: "Invalid credentials",
         });
       }
 
-      // Check password
+      // Verify password
       const isPasswordValid = await bcrypt.compare(password, user.password);
-      console.log("Password valid:", isPasswordValid);
-
       if (!isPasswordValid) {
-        console.log("Password comparison failed");
         return res.status(401).json({
           success: false,
           message: "Invalid credentials",
         });
       }
 
-      // Generate JWT token
+      // Generate JWT
       const token = jwt.sign(
-        {
-          id: user.id,
-          role: user.role,
-          studentCode: user.studentCode,
-        },
+        { id: user.id, role: user.role, studentCode: user.studentCode },
         process.env.JWT_SECRET,
         { expiresIn: process.env.JWT_EXPIRES_IN }
       );
 
+      // Session storage (optional)
       req.session.user = {
         id: user.id,
         studentCode: user.studentCode,
         name: user.name,
         role: user.role,
         isAdmin: user.role === "ADMIN",
+        isClerk: user.role === "CLERK",
       };
 
-      // Remove password from response and add isAdmin flag
+      // Prepare user response
       const { password: _, ...userWithoutPassword } = user;
       const userResponse = {
         ...userWithoutPassword,
-        isAdmin: user.role === "ADMIN", // Derive isAdmin from role
+        isAdmin: user.role === "ADMIN",
+        isClerk: user.role === "CLERK",
       };
 
-      console.log("Login successful for user:", user.studentCode);
+      // Send response
       res.json({
         success: true,
         message: "Login successful",
+        token,
         user: userResponse,
       });
 
+      // Log activity
       try {
         const logData = {
           userId: user.id,
@@ -386,16 +410,9 @@ class AuthController {
           userAgent: req.headers["user-agent"] || null,
         };
 
-        const logResult = await ActivityService.logActivity(logData);
-
-        if (!logResult.success) {
-          console.error("Activity logging failed:", logResult.error);
-        }
+        await ActivityService.logActivity(logData);
       } catch (activityError) {
-        console.error(
-          "Unexpected error during activity logging:",
-          activityError
-        );
+        console.error("Activity logging failed:", activityError);
       }
     } catch (error) {
       console.error("Login error:", error);
@@ -411,7 +428,7 @@ class AuthController {
   async getAllStudents(req, res) {
     try {
       const users = await prisma.user.findMany({
-        where:{
+        where: {
           role: "STUDENT",
         },
       });
@@ -442,7 +459,7 @@ class AuthController {
         isAdmin: user.role === "ADMIN",
       }));
 
-      return res.json({ users:formattedUsers});
+      return res.json({ users: formattedUsers });
     } catch (error) {
       console.error("Error fetching users:", error);
       return res.status(500).json({ error: "Failed to fetch users" });

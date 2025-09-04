@@ -12,6 +12,7 @@ const {
   validateAdminRegister,
   validateAdminLogin,
   isAdmin,
+  requireClerk,
   validateChangePassword,
   validateResetStudentPassword,
 } = require("../middleware/validation");
@@ -53,6 +54,13 @@ router.post(
   authController.adminRegister
 );
 router.post("/admin-login", validateAdminLogin, authController.adminLogin);
+
+router.post('/clerk/register', authController.clerkRegister);
+
+// Clerk login route
+router.post('/clerk/login', authController.login);
+
+
 router.get("/users", authController.getAllStudents);
 // Protected routes
 router.get("/profile", authenticateSession, authController.getProfile);

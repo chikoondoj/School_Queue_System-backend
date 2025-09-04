@@ -94,6 +94,25 @@ const isAdmin = (req, res, next) => {
   next();
 };
 
+const requireClerk = (req, res, next) => {
+  if (!req.session || !req.session.user) {
+    return res.status(401).json({
+      success: false,
+      message: 'Not authenticated',
+    });
+  }
+
+  if (req.session.user.role !== 'CLERK') {
+    return res.status(403).json({
+      success: false,
+      message: 'Access denied: Clerks only',
+    });
+  }
+
+  next();
+};
+
+
 const validateLogin = (req, res, next) => {
   const { identifier, password } = req.body;
   const errors = [];
@@ -280,6 +299,7 @@ module.exports = {
   validateRegister,
   validateLogin,
   isAdmin,
+  requireClerk,
   validateUpdateProfile,
   validateChangePassword,
   validateJoinQueue,
