@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const { Models } = require("../models");
+const ticketController = require("../controllers/ticketController");
 
 // Get all tickets (optionally filtered)
 router.get("/all", async (req, res) => {
@@ -63,5 +64,16 @@ router.delete("/:id", async (req, res) => {
     res.status(500).json({ success: false, message: "Failed to delete ticket", error: error.message });
   }
 });
+
+
+// Clerk ticket management
+router.patch("/call-next/:id", ticketController.callNext);
+router.patch("/call-next-service/:serviceId", ticketController.callNextForService);
+router.patch("/in-progress/:id", ticketController.markInProgress);
+router.patch("/complete/:id", ticketController.completeTicket);
+router.patch("/cancel/:id", ticketController.cancelTicket);
+
+// Queue view
+router.get("/queue/:serviceId", ticketController.getQueueByService);
 
 module.exports = router;
