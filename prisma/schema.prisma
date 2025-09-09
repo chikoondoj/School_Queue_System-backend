@@ -21,6 +21,7 @@ model User {
   adminCode     String?         @unique
   isActive      Boolean?        @default(true)
   role          Role            @default(STUDENT)
+   serviceId String?
   activities    Activity[]
   activity_logs activity_logs[]
   tickets       Tickets[]

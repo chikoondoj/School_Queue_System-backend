@@ -252,46 +252,56 @@ class AuthController {
   }
 
   async clerkRegister(req, res) {
-    try {
-      const { name, email, password } = req.body;
+  try {
+    const { name, email, password, serviceId } = req.body;
 
-      if (!name || !email || !password) {
-        return res.status(400).json({ message: "All fields are required" });
-      }
-
-      // Check if email already exists
-      const existingUser = await prisma.user.findUnique({ where: { email } });
-      if (existingUser) {
-        return res.status(400).json({ message: "Email already registered" });
-      }
-
-      // Hash password
-      const hashedPassword = await bcrypt.hash(password, 10);
-
-      // Create clerk user
-      const clerk = await prisma.user.create({
-        data: {
-          name,
-          email,
-          password: hashedPassword,
-          role: "CLERK",
-        },
-      });
-
-      res.status(201).json({
-        message: "Clerk registered successfully",
-        user: {
-          id: clerk.id,
-          name: clerk.name,
-          email: clerk.email,
-          role: clerk.role,
-        },
-      });
-    } catch (error) {
-      console.error("Clerk registration error:", error);
-      res.status(500).json({ message: "Internal server error" });
+    // Validate input
+    if (!name || !email || !password || !serviceId) {
+      return res.status(400).json({ message: "All fields including serviceId are required" });
     }
+
+    // Check if email already exists
+    const existingUser = await prisma.user.findUnique({ where: { email } });
+    if (existingUser) {
+      return res.status(400).json({ message: "Email already registered" });
+    }
+
+    // Check if service exists
+    const service = await prisma.service.findUnique({ where: { id: serviceId } });
+    if (!service) {
+      return res.status(400).json({ message: "Invalid serviceId" });
+    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Create clerk user
+    const clerk = await prisma.user.create({
+      data: {
+        name,
+        email,
+        password: hashedPassword,
+        role: "CLERK",
+        serviceId, // assign the service here
+      },
+    });
+
+    res.status(201).json({
+      message: "Clerk registered successfully",
+      user: {
+        id: clerk.id,
+        name: clerk.name,
+        email: clerk.email,
+        role: clerk.role,
+        serviceId: clerk.serviceId,
+      },
+    });
+  } catch (error) {
+    console.error("Clerk registration error:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
+}
+
 
   // Student/Admin Login
   async login(req, res) {
@@ -388,6 +398,7 @@ class AuthController {
         ...userWithoutPassword,
         isAdmin: user.role === "ADMIN",
         isClerk: user.role === "CLERK",
+        serviceId: user.role === "CLERK" ? user.serviceId : undefined,
       };
 
       // Send response

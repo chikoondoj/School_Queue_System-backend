@@ -3,6 +3,7 @@ const router = express.Router();
 
 const adminController = require('../controllers/adminController');
 const { requireAdmin } = require('../middleware/auth');
+const clerkController = require("../controllers/clerkController");
 
 // Admin dashboard - matches getDashboard method
 router.get('/dashboard', requireAdmin, adminController.getDashboard);
@@ -18,5 +19,7 @@ router.post('/cancel-service', requireAdmin, adminController.cancelService);
 
 // Queue history - matches getQueueHistory method
 router.get('/history', requireAdmin, adminController.getQueueHistory);
+
+router.patch("/assign-service/:clerkId", clerkController.assignService);
 
 module.exports = router;
