@@ -1,4 +1,4 @@
-const prisma = require("../prismaClient"); // adjust path if needed
+const { PrismaClient } = require("@prisma/client");
 
 class ClerkController {
   // Assign a service to a clerk
