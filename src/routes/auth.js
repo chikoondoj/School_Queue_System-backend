@@ -67,7 +67,7 @@ router.post('/clerk/login', authController.login);
 router.get("/users", authController.getAllStudents);
 
 
-router.use(authenticateSession, activityLogger);
+// router.use(authenticateSession, activityLogger);
 // Protected routes
 router.get("/profile", authenticateSession, authController.getProfile);
 router.put(
