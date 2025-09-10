@@ -18,7 +18,7 @@ const {
   validateResetStudentPassword,
 } = require("../middleware/validation");
 
-router.use(authenticateSession, activityLogger);
+
 
 // Student login page
 router.get("/student/login", (req, res) => {
@@ -65,6 +65,9 @@ router.post('/clerk/login', authController.login);
 
 
 router.get("/users", authController.getAllStudents);
+
+
+router.use(authenticateSession, activityLogger);
 // Protected routes
 router.get("/profile", authenticateSession, authController.getProfile);
 router.put(
