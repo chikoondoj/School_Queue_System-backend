@@ -4,6 +4,7 @@
   "description": "",
   "main": "server.js",
   "scripts": {
+    "migrate" : "prisma migrate deploy",
     "start": "node server.js",
     "create_services": "node create-services.js",
     "dev": "nodemon server.js",
