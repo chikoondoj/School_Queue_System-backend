@@ -282,7 +282,7 @@ class AuthController {
         email,
         password: hashedPassword,
         role: "CLERK",
-        serviceId, // assign the service here
+        serviceId,
       },
     });
 

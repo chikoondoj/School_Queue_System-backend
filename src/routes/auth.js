@@ -1,6 +1,7 @@
 const express = require("express");
 const path = require("path");
 const router = express.Router();
+const activityLogger = require("../middleware/activityLogger");
 
 const authController = require("../controllers/authController");
 const { authenticateSession, requireAdmin } = require("../middleware/auth");
@@ -16,6 +17,8 @@ const {
   validateChangePassword,
   validateResetStudentPassword,
 } = require("../middleware/validation");
+
+router.use(authenticateSession, activityLogger);
 
 // Student login page
 router.get("/student/login", (req, res) => {

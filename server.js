@@ -38,7 +38,7 @@ const io = new Server(server, {
       process.env.NODE_ENV === "production"
         ? process.env.CLIENT_URL
         : ["http://localhost:3000", "http://localhost:3001"],
-    methods: ["GET", "POST", "PUT", "DELETE"],
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     credentials: true,
   },
   transports: ["websocket", "polling"],
