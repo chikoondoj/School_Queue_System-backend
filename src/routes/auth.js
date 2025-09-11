@@ -74,7 +74,7 @@ router.put(
   "/profile",
   authenticateSession,
   validateUpdateProfile,
-  activityLogger,
+  // activityLogger,
   authController.updateProfile
 );
 router.put(
@@ -91,7 +91,7 @@ router.post(
   validateResetStudentPassword,
   requireAdmin,
   authController.resetStudentPassword,
-  activityLogger
+  // activityLogger
 );
 
 router.post('/logout', (req, res) => {
