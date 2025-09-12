@@ -78,8 +78,8 @@ class AuthController {
       }
 
       let studentCode;
-      if (lastUser && lastUser.studentCode) {
-        const num = parseInt(lastUser.studentCode.replace("STU", ""), 10);
+      if (lastStudent && lastStudent.studentCode) {
+        const num = parseInt(lastStudent.studentCode.replace("STU", ""), 10);
         studentCode = "STU" + String(num + 1).padStart(3, "0");
       } else {
         studentCode = "STU001";
