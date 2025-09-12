@@ -57,10 +57,25 @@ class AuthController {
       }
 
       //Generate next studentCode
-      const lastUser = await prisma.user.findFirst({
-        orderBy: { id: "desc" },
+      const lastStudent = await prisma.user.findFirst({
+        where: { role: "STUDENT" },
+        orderBy: { createdAt: "desc" }, // or "id" if you don’t have createdAt
         select: { studentCode: true },
       });
+
+      let newCode = "STU001";
+
+      if (lastStudent && lastStudent.studentCode) {
+        // Extract the numeric part (e.g., "STU005" → 5)
+        const lastNumber = parseInt(
+          lastStudent.studentCode.replace("STU", ""),
+          10
+        );
+        const nextNumber = lastNumber + 1;
+
+        // Pad with zeros → STU006
+        newCode = "STU" + String(nextNumber).padStart(3, "0");
+      }
 
       let studentCode;
       if (lastUser && lastUser.studentCode) {
@@ -252,56 +267,59 @@ class AuthController {
   }
 
   async clerkRegister(req, res) {
-  try {
-    const { name, email, password, serviceId } = req.body;
+    try {
+      const { name, email, password, serviceId } = req.body;
 
-    // Validate input
-    if (!name || !email || !password || !serviceId) {
-      return res.status(400).json({ message: "All fields including serviceId are required" });
+      // Validate input
+      if (!name || !email || !password || !serviceId) {
+        return res
+          .status(400)
+          .json({ message: "All fields including serviceId are required" });
+      }
+
+      // Check if email already exists
+      const existingUser = await prisma.user.findUnique({ where: { email } });
+      if (existingUser) {
+        return res.status(400).json({ message: "Email already registered" });
+      }
+
+      // Check if service exists
+      const service = await prisma.service.findUnique({
+        where: { id: serviceId },
+      });
+      if (!service) {
+        return res.status(400).json({ message: "Invalid serviceId" });
+      }
+
+      // Hash password
+      const hashedPassword = await bcrypt.hash(password, 10);
+
+      // Create clerk user
+      const clerk = await prisma.user.create({
+        data: {
+          name,
+          email,
+          password: hashedPassword,
+          role: "CLERK",
+          serviceId,
+        },
+      });
+
+      res.status(201).json({
+        message: "Clerk registered successfully",
+        user: {
+          id: clerk.id,
+          name: clerk.name,
+          email: clerk.email,
+          role: clerk.role,
+          serviceId: clerk.serviceId,
+        },
+      });
+    } catch (error) {
+      console.error("Clerk registration error:", error);
+      res.status(500).json({ message: "Internal server error" });
     }
-
-    // Check if email already exists
-    const existingUser = await prisma.user.findUnique({ where: { email } });
-    if (existingUser) {
-      return res.status(400).json({ message: "Email already registered" });
-    }
-
-    // Check if service exists
-    const service = await prisma.service.findUnique({ where: { id: serviceId } });
-    if (!service) {
-      return res.status(400).json({ message: "Invalid serviceId" });
-    }
-
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Create clerk user
-    const clerk = await prisma.user.create({
-      data: {
-        name,
-        email,
-        password: hashedPassword,
-        role: "CLERK",
-        serviceId,
-      },
-    });
-
-    res.status(201).json({
-      message: "Clerk registered successfully",
-      user: {
-        id: clerk.id,
-        name: clerk.name,
-        email: clerk.email,
-        role: clerk.role,
-        serviceId: clerk.serviceId,
-      },
-    });
-  } catch (error) {
-    console.error("Clerk registration error:", error);
-    res.status(500).json({ message: "Internal server error" });
   }
-}
-
 
   // Student/Admin Login
   async login(req, res) {

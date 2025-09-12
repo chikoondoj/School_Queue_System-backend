@@ -74,7 +74,7 @@ router.put(
   "/profile",
   authenticateSession,
   validateUpdateProfile,
-  // activityLogger,
+  activityLogger,
   authController.updateProfile
 );
 router.put(
