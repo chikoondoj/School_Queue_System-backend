@@ -145,6 +145,7 @@ class AuthController {
         success: true,
         message: "Student registered successfully",
         userId: user.id,
+        studentCode: user.studentCode,
       });
     } catch (error) {
       console.log("=== REGISTRATION ERROR ===");
