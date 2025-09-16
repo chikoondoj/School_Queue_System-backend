@@ -663,6 +663,8 @@ const updateQueueStatistics = async () => {
           averageServiceTime,
           service.availableWindows || 1
         );
+        const services = await QueueService.getAllServices();
+        console.log("Fetched services:", services);
 
         if (!service || !service.id) {
           console.warn(
