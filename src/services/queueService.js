@@ -696,7 +696,7 @@ class QueueService {
   }
 
   async getAllServices() {
-    // Fetch all services from the database
+    // 1. Get services from DB
     const servicesFromDb = await prisma.service.findMany({
       select: {
         id: true,
@@ -704,29 +704,34 @@ class QueueService {
         name: true,
         description: true,
         estimatedTime: true,
-        // availableWindows: true,
         isActive: true,
       },
     });
-    console.log("Services from DB:", servicesFromDb);
 
-    // Add stats and extra info per service
-    const services = [];
+    // 2. Enrich each service with stats + static fields
+    const services = await Promise.all(
+      servicesFromDb.map(async (dbService) => {
+        const stats = await this.getQueueStats(dbService.id);
+        const isAvailable = await this.isServiceAvailable(dbService.id);
 
-    for (const service of servicesFromDb) {
-      const stats = await this.getQueueStats(service.id);
-      const isAvailable = await this.isServiceAvailable(service.id);
+        return {
+          id: dbService.id,
+          type: dbService.type,
+          name: dbService.name,
+          description: dbService.description,
+          estimatedTime: dbService.estimatedTime,
+          isActive: dbService.isActive,
 
-      services.push({
-        id: service.id,
-        type: service.type,
-        name: service.name,
-        description: service.description,
-        stats,
-        lastUpdated: new Date().toISOString(),
-      });
-    }
-    console.log("Processed services:", services);
+          // 🔗 merge with your static helpers
+          operatingHours: this.getOperatingHours(dbService.type),
+          isAvailable, // ✅ awaited value
+
+          // Extra metadata
+          stats,
+          lastUpdated: new Date().toISOString(),
+        };
+      })
+    );
 
     return services;
   }
@@ -748,18 +753,9 @@ class QueueService {
     return Object.values(this.SERVICES).includes(serviceType);
   }
 
-  getAvailableServices() {
-    return Object.values(this.SERVICES).map((service) => ({
-      type: service,
-      name: this.getServiceDisplayName(service),
-      description: this.getServiceDescription(service),
-      operatingHours: this.getOperatingHours(service),
-      isAvailable: this.isServiceAvailable(service),
-    }));
-  }
-
-  async getAllServices() {
-    return this.getAvailableServices();
+  async getAvailableServices() {
+    const allServices = await this.getAllServices();
+    return allServices.filter((service) => service.isAvailable);
   }
 }
 
