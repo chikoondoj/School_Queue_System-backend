@@ -30,11 +30,10 @@ class QueueService {
 
   async addToQueue(
     studentId,
-    serviceType,
     priority = this.PRIORITY_LEVELS.NORMAL,
     notes = null
   ) {
-    if (!Object.values(this.SERVICES).includes(serviceType)) {
+    if (!Object.values(this.SERVICES).includes(serviceId)) {
       throw new Error("Invalid service type");
     }
 
@@ -43,15 +42,15 @@ class QueueService {
       throw new Error("Student already has an active ticket");
     }
 
-    const position = await Models.getNextPosition(serviceType, priority);
+    const position = await Models.getNextPosition(serviceId, priority);
     const estimatedWaitTime = await this.calculateDynamicWaitTime(
-      serviceType,
+      serviceId,
       position
     );
 
     const ticket = await Models.createTicket({
       studentId,
-      serviceType,
+      serviceId,
       position,
       priority,
       notes,
@@ -59,7 +58,7 @@ class QueueService {
       status: this.TICKET_STATUS.WAITING,
     });
 
-    const queueStats = await this.getQueueStats(serviceType);
+    const queueStats = await this.getQueueStats(serviceId);
 
     return {
       ...ticket,
@@ -67,7 +66,7 @@ class QueueService {
       queueInfo: {
         position: position,
         totalAhead: position - 1,
-        service: serviceType,
+        service: serviceId,
         totalWaiting: queueStats.totalWaiting,
         averageWaitTime: queueStats.averageWaitTime,
         currentlyServing: queueStats.currentlyServing,
@@ -132,13 +131,13 @@ class QueueService {
     };
   }
 
-  async getQueueByService(serviceType) {
-    const queue = await Models.getQueueByService(serviceType);
-    const currentStats = await this.getQueueStats(serviceType);
+  async getQueueByService(serviceId) {
+    const queue = await Models.getQueueByService(serviceId);
+    const currentStats = await this.getQueueStats(serviceId);
 
     return {
-      serviceType,
-      serviceName: this.getServiceDisplayName(serviceType),
+      serviceId,
+      serviceName: this.getServiceDisplayName(serviceId),
       queue: queue.map((ticket, index) => ({
         ...ticket,
         currentPosition: index + 1,
@@ -150,8 +149,8 @@ class QueueService {
     };
   }
 
-  async getActiveTicketsForService(serviceType) {
-    const queue = await Models.getQueueByService(serviceType);
+  async getActiveTicketsForService(serviceId) {
+    const queue = await Models.getQueueByService(serviceId);
     // Filter tickets that are active (waiting or serving)
     return queue.filter(
       (ticket) =>
@@ -160,8 +159,8 @@ class QueueService {
     );
   }
 
-  async getCompletedTicketsForService(serviceType) {
-    const queue = await Models.getQueueByService(serviceType);
+  async getCompletedTicketsForService(serviceId) {
+    const queue = await Models.getQueueByService(serviceId);
     // Filter tickets with status 'completed'
     return queue.filter(
       (ticket) => ticket.status === this.TICKET_STATUS.COMPLETED
@@ -171,18 +170,18 @@ class QueueService {
   async getServicesDetailed() {
     const services = [];
 
-    for (const serviceType of Object.values(this.SERVICES)) {
-      const stats = await this.getQueueStats(serviceType);
-      const recentActivity = await this.getRecentActivity(serviceType);
+    for (const serviceId of Object.values(this.SERVICES)) {
+      const stats = await this.getQueueStats(serviceId);
+      const recentActivity = await this.getRecentActivity(serviceId);
 
       services.push({
-        type: serviceType,
-        name: this.getServiceDisplayName(serviceType),
-        description: this.getServiceDescription(serviceType),
+        type: serviceId,
+        name: this.getServiceDisplayName(serviceId),
+        description: this.getServiceDescription(serviceId),
         stats,
         recentActivity,
-        isAvailable: await this.isServiceAvailable(serviceType),
-        operatingHours: this.getOperatingHours(serviceType),
+        isAvailable: await this.isServiceAvailable(serviceId),
+        operatingHours: this.getOperatingHours(serviceId),
       });
     }
 
@@ -190,13 +189,13 @@ class QueueService {
   }
 
   async getQueueStats(serviceId) {
-    const queue = await Models.getQueueByService(serviceType);
+    const queue = await Models.getQueueByService(serviceId);
     const currentlyServing = await prisma.tickets.findFirst({
   where: { serviceId, status: 'IN_PROGRESS' },
   orderBy: { createdAt: 'asc' },
 });
-    const todayStats = await Models.getTodayServiceStats(serviceType);
-    const avgWaitTime = await Models.getAverageWaitTime(serviceType);
+    const todayStats = await Models.getTodayServiceStats(serviceId);
+    const avgWaitTime = await Models.getAverageWaitTime(serviceId);
 
     return {
       totalWaiting: queue.length,
@@ -275,8 +274,8 @@ class QueueService {
     return overview;
   }
 
-  async callNextStudent(serviceType, adminId) {
-    const nextTicket = await Models.getNextWaitingTicket(serviceType);
+  async callNextStudent(serviceId, adminId) {
+    const nextTicket = await Models.getNextWaitingTicket(serviceId);
 
     if (!nextTicket) {
       return null;
@@ -290,12 +289,12 @@ class QueueService {
       { service_started_at: new Date() }
     );
 
-    await this.updateQueuePositions(serviceType);
+    await this.updateQueuePositions(serviceId);
 
     return {
       ...updatedTicket,
       calledAt: new Date().toISOString(),
-      estimatedServiceTime: await this.getAverageServiceTime(serviceType),
+      estimatedServiceTime: await this.getAverageServiceTime(serviceId),
       adminId,
     };
   }
@@ -389,17 +388,17 @@ class QueueService {
     }));
   }
 
-  async getQueueAnalytics(serviceType, startDate, endDate) {
+  async getQueueAnalytics(serviceId, startDate, endDate) {
     const analytics = await Models.getQueueAnalytics(
-      serviceType,
+      serviceId,
       startDate,
       endDate
     );
-    const trends = await Models.getQueueTrends(serviceType, startDate, endDate);
+    const trends = await Models.getQueueTrends(serviceId, startDate, endDate);
 
     return {
-      serviceType,
-      serviceName: this.getServiceDisplayName(serviceType),
+      serviceId,
+      serviceName: this.getServiceDisplayName(serviceId),
       period: { startDate, endDate },
       analytics: {
         ...analytics,
@@ -435,9 +434,9 @@ class QueueService {
     };
   }
 
-  async calculateDynamicWaitTime(serviceType, position) {
+  async calculateDynamicWaitTime(serviceId, position) {
     const recentServiceTimes = await Models.getRecentServiceTimes(
-      serviceType,
+      serviceId,
       10
     );
     const currentlyServing = await prisma.tickets.findFirst({
@@ -473,8 +472,8 @@ class QueueService {
     };
   }
 
-  async updateQueuePositions(serviceType) {
-    const queue = await Models.getQueueByService(serviceType);
+  async updateQueuePositions(serviceId) {
+    const queue = await Models.getQueueByService(serviceId);
 
     for (let i = 0; i < queue.length; i++) {
       if (queue[i].position !== i + 1) {
@@ -483,9 +482,9 @@ class QueueService {
     }
   }
 
-  async getQueueMovementStats(serviceType) {
-    const last30Min = await Models.getQueueMovementInPeriod(serviceType, 30);
-    const lastHour = await Models.getQueueMovementInPeriod(serviceType, 60);
+  async getQueueMovementStats(serviceId) {
+    const last30Min = await Models.getQueueMovementInPeriod(serviceId, 30);
+    const lastHour = await Models.getQueueMovementInPeriod(serviceId, 60);
 
     return {
       studentsServedLast30Min: last30Min,
@@ -494,16 +493,16 @@ class QueueService {
     };
   }
 
-  async getRecentActivity(serviceType, limit = 5) {
-    return await Models.getRecentActivity(serviceType, limit);
+  async getRecentActivity(serviceId, limit = 5) {
+    return await Models.getRecentActivity(serviceId, limit);
   }
 
   async getTicketHistory(ticketId) {
     return await Models.getTicketStatusHistory(ticketId);
   }
 
-  async isServiceAvailable(serviceType) {
-    const operatingHours = this.getOperatingHours(serviceType);
+  async isServiceAvailable(serviceId) {
+    const operatingHours = this.getOperatingHours(serviceId);
     const now = new Date();
     const currentHour = now.getHours();
     const currentDay = now.getDay();
@@ -519,7 +518,7 @@ class QueueService {
     return false;
   }
 
-  getOperatingHours(serviceType) {
+  getOperatingHours(serviceId) {
     const defaultHours = {
       days: [1, 2, 3, 4, 5],
       start: 8,
@@ -534,7 +533,7 @@ class QueueService {
       [this.SERVICES.COUNSELING]: { ...defaultHours, days: [1, 2, 3, 4, 5, 6] },
     };
 
-    return serviceHours[serviceType] || defaultHours;
+    return serviceHours[serviceId] || defaultHours;
   }
 
   calculateEstimatedWaitTime(position) {
@@ -603,8 +602,8 @@ class QueueService {
     return "medium";
   }
 
-  async getAverageServiceTime(serviceType) {
-    const recentTimes = await Models.getRecentServiceTimes(serviceType, 20);
+  async getAverageServiceTime(serviceId) {
+    const recentTimes = await Models.getRecentServiceTimes(serviceId, 20);
     if (recentTimes.length === 0) return 15;
 
     return Math.round(
@@ -612,13 +611,13 @@ class QueueService {
     );
   }
 
-  async updateServiceStats(serviceType, ticket) {
+  async updateServiceStats(serviceId, ticket) {
     const waitTime = this.calculateActualWaitTime(ticket);
     const serviceTime = this.calculateActualServiceTime(ticket);
 
     if (waitTime && serviceTime) {
       await Models.updateServiceAverages(
-        serviceType,
+        serviceId,
         waitTime.minutes,
         serviceTime.minutes
       );
@@ -679,7 +678,7 @@ class QueueService {
     }`;
   }
 
-  getServiceDisplayName(serviceType) {
+  getServiceDisplayName(serviceId) {
     const names = {
       [this.SERVICES.ADMISSION]: "Student Admission",
       [this.SERVICES.REGISTRATION]: "Student Registration",
@@ -687,10 +686,10 @@ class QueueService {
       [this.SERVICES.COUNSELING]: "Counseling Services",
     };
 
-    return names[serviceType] || serviceType;
+    return names[serviceId] || serviceId;
   }
 
-  getServiceDescription(serviceType) {
+  getServiceDescription(serviceId) {
     const descriptions = {
       [this.SERVICES.ADMISSION]:
         "New student admissions and application processing",
@@ -700,7 +699,7 @@ class QueueService {
       [this.SERVICES.COUNSELING]: "Academic and personal counseling services",
     };
 
-    return descriptions[serviceType] || "General service";
+    return descriptions[serviceId] || "General service";
   }
 
   async getAllServices() {
@@ -741,21 +740,21 @@ class QueueService {
     return services;
   }
 
-  async getQueueUpdates(serviceType) {
-    const queue = await this.getQueueByService(serviceType);
+  async getQueueUpdates(serviceId) {
+    const queue = await this.getQueueByService(serviceId);
     const overview = await this.getAdminOverview();
 
     return {
-      serviceType,
+      serviceId,
       queue: queue.queue,
-      overview: overview.servicesOverview[serviceType],
+      overview: overview.servicesOverview[serviceId],
       systemHealth: overview.systemHealth,
       timestamp: new Date().toISOString(),
     };
   }
 
-  isValidServiceType(serviceType) {
-    return Object.values(this.SERVICES).includes(serviceType);
+  isValidserviceId(serviceId) {
+    return Object.values(this.SERVICES).includes(serviceId);
   }
 
   async getAvailableServices() {

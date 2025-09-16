@@ -16,7 +16,7 @@ class QueueController {
       console.log("Request body:", req.body);
       console.log("Request user:", req.user);
 
-      const { serviceType } = req.body;
+      const { serviceId } = req.body;
       const studentId = req.user?.id;
 
       if (!studentId) {
@@ -35,7 +35,7 @@ class QueueController {
         });
       }
 
-      const ticket = await queueService.addToQueue(studentId, serviceType);
+      const ticket = await queueService.addToQueue(studentId, serviceId);
       console.log("New ticket:", ticket);
 
       if (!req.io) {
@@ -43,7 +43,7 @@ class QueueController {
       } else {
         req.io.emit("queueUpdate", {
           type: "STUDENT_JOINED",
-          service: serviceType,
+          service: serviceId,
           ticket: ticket,
         });
       }
@@ -116,11 +116,11 @@ class QueueController {
   // Get queue status for a service
   async getQueueStatus(req, res) {
     try {
-      const { serviceType } = req.params;
-      const queueData = await queueService.getQueueByService(serviceType);
+      const { serviceId } = req.params;
+      const queueData = await queueService.getQueueByService(serviceId);
 
       res.json({
-        service: serviceType,
+        service: serviceId,
         totalInQueue: queueData.length,
         currentlyServing: queueData.find(
           (ticket) => ticket.status === "serving"
@@ -165,10 +165,10 @@ class QueueController {
   // Admin: Call next student
   async callNextStudent(req, res) {
     try {
-      const { serviceType } = req.body;
+      const { serviceId } = req.body;
       const adminId = req.user.id;
 
-      const result = await queueService.callNextStudent(serviceType, adminId);
+      const result = await queueService.callNextStudent(serviceId, adminId);
 
       if (!result) {
         return res
@@ -179,7 +179,7 @@ class QueueController {
       // Emit real-time update
       req.io.emit("queueUpdate", {
         type: "STUDENT_CALLED",
-        service: serviceType,
+        service: serviceId,
         ticket: result,
       });
 
@@ -250,11 +250,11 @@ class QueueController {
   // Get queue history for reports
   async getQueueHistory(req, res) {
     try {
-      const { startDate, endDate, serviceType } = req.query;
+      const { startDate, endDate, serviceId } = req.query;
       const history = await queueService.getQueueHistory({
         startDate,
         endDate,
-        serviceType,
+        serviceId,
       });
 
       res.json({ history });
@@ -493,7 +493,7 @@ class QueueController {
 
       // Get current position in queue
       const queueData = await queueService.getQueueByService(
-        ticket.serviceType
+        ticket.serviceId
       );
       const waitingTickets = queueData.filter((t) => t.status === "waiting");
       const currentPosition =
@@ -511,7 +511,7 @@ class QueueController {
 
       const estimatedWaitTime =
         currentPosition *
-        (serviceInfo[ticket.serviceType]?.estimatedTime || 15);
+        (serviceInfo[ticket.serviceId]?.estimatedTime || 15);
 
       res.json({
         success: true,
@@ -520,9 +520,9 @@ class QueueController {
           ticket: {
             id: ticket.id,
             ticketNumber: ticket.ticketNumber,
-            serviceType: ticket.serviceType,
+            serviceId: ticket.serviceId,
             serviceName:
-              serviceInfo[ticket.serviceType]?.name || ticket.serviceType,
+              serviceInfo[ticket.serviceId]?.name || ticket.serviceId,
             status: ticket.status,
             position: ticket.status === "waiting" ? currentPosition : null,
             joinedAt: ticket.createdAt,
@@ -571,7 +571,7 @@ class QueueController {
       // Emit real-time update
       req.io.emit("queueUpdate", {
         type: "STUDENT_CANCELLED",
-        service: ticket.serviceType,
+        service: ticket.serviceId,
         ticket: result,
       });
 
@@ -581,7 +581,7 @@ class QueueController {
         data: {
           cancelledTicket: {
             ticketNumber: result.ticketNumber,
-            serviceType: result.serviceType,
+            serviceId: result.serviceId,
             cancelledAt: new Date(),
           },
         },
