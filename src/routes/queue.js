@@ -4,6 +4,7 @@ const router = express.Router();
 const { PrismaClient } = require("@prisma/client");
 const authController = require("../controllers/authController");
 const { updateQueuePositions } = require("../services/queueService");
+const queueController = require("../controllers/queueController");
 const {
   authenticateSession,
   requireAuth,
@@ -787,6 +788,8 @@ router.get("/status/:serviceId", async (req, res) => {
     });
   }
 });
+
+router.get("/stats/:serviceId", queueController.getQueueStats);
 
 process.on("beforeExit", async () => {
   await prisma.$disconnect();
