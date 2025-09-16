@@ -1,7 +1,6 @@
-const { prisma, Models } = require('../models');
+const { prisma, Models } = require("../models");
 // const { PrismaClient } = require('@prisma/client');
 // const prisma = new PrismaClient();
-
 
 class QueueService {
   constructor() {
@@ -189,35 +188,26 @@ class QueueService {
   }
 
   async getQueueStats(serviceId) {
-    const queue = await Models.getQueueByService(serviceId);
     const currentlyServing = await prisma.tickets.findFirst({
-  where: { serviceId, status: 'IN_PROGRESS' },
-  orderBy: { createdAt: 'asc' },
-});
+      where: { serviceId, status: "IN_PROGRESS" },
+      orderBy: { createdAt: "asc" },
+    });
+
     const todayStats = await Models.getTodayServiceStats(serviceId);
     const avgWaitTime = await Models.getAverageWaitTime(serviceId);
 
     return {
-      totalWaiting: queue.length,
+      totalWaiting: await prisma.tickets.count({
+        where: { serviceId, status: "WAITING" },
+      }),
       currentlyServing: currentlyServing
         ? {
             studentId: currentlyServing.student_id,
             studentName: currentlyServing.student_name,
-            startTime: currentlyServing.service_started_at,
-            estimatedCompletion: this.calculateEstimatedCompletion(
-              currentlyServing.service_started_at
-            ),
           }
         : null,
-      averageWaitTime: {
-        minutes: avgWaitTime || 15,
-        formatted: this.formatMinutes(avgWaitTime || 15),
-      },
-      todayStats: {
-        served: todayStats.total_served || 0,
-        avgServiceTime: todayStats.avg_service_time || 15,
-        avgWaitTime: todayStats.avg_wait_time || 15,
-      },
+      averageWaitTime: { minutes: avgWaitTime || 15 },
+      todayStats: todayStats || {},
     };
   }
 
@@ -440,9 +430,9 @@ class QueueService {
       10
     );
     const currentlyServing = await prisma.tickets.findFirst({
-  where: { serviceId, status: 'IN_PROGRESS' },
-  orderBy: { createdAt: 'asc' },
-});
+      where: { serviceId, status: "IN_PROGRESS" },
+      orderBy: { createdAt: "asc" },
+    });
 
     let avgServiceTime = 15;
     if (recentServiceTimes.length > 0) {
