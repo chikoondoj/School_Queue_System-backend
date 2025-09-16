@@ -64,36 +64,36 @@ class QueueController {
       where: { isActive: true },
     });
 
-    // For each service, count tickets by status
+    // Use Promise.all but only one query per service using groupBy
     const stats = await Promise.all(
       services.map(async (service) => {
-        const waitingCount = await prisma.tickets.count({
-          where: { serviceId: service.id, status: "WAITING" },
-        });
-        const inProgressCount = await prisma.tickets.count({
-          where: { serviceId: service.id, status: "IN_PROGRESS" },
-        });
-        const completedCount = await prisma.tickets.count({
-          where: { serviceId: service.id, status: "COMPLETED" },
-        });
-        const cancelledCount = await prisma.tickets.count({
-          where: { serviceId: service.id, status: "CANCELLED" },
+        // Aggregate ticket counts by status for this service
+        const counts = await prisma.tickets.groupBy({
+          by: ['status'],
+          where: { serviceId: service.id },
+          _count: { status: true },
         });
 
-        // Current ticket in progress
+        // Convert counts array to object for easy access
+        const countMap = counts.reduce((acc, curr) => {
+          acc[curr.status] = curr._count.status;
+          return acc;
+        }, {});
+
+        // Get the first ticket currently in progress (if any)
         const currentTicket = await prisma.tickets.findFirst({
-          where: { serviceId: service.id, status: "IN_PROGRESS" },
+          where: { serviceId: service.id, status: 'IN_PROGRESS' },
           include: { user: { select: { name: true, studentCode: true } } },
-          orderBy: { createdAt: "asc" },
+          orderBy: { createdAt: 'asc' },
         });
 
         return {
           serviceId: service.id,
           serviceName: service.name,
-          waiting: waitingCount,
-          inProgress: inProgressCount,
-          completed: completedCount,
-          cancelled: cancelledCount,
+          waiting: countMap['WAITING'] || 0,
+          inProgress: countMap['IN_PROGRESS'] || 0,
+          completed: countMap['COMPLETED'] || 0,
+          cancelled: countMap['CANCELLED'] || 0,
           currentTicket: currentTicket?.user?.name || null,
         };
       })
@@ -104,10 +104,10 @@ class QueueController {
       stats,
     });
   } catch (error) {
-    console.error("Error fetching queue stats:", error);
+    console.error('Error fetching queue stats:', error);
     res.status(500).json({
       success: false,
-      message: "Failed to fetch queue stats",
+      message: 'Failed to fetch queue stats',
     });
   }
 }
