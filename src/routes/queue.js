@@ -789,7 +789,7 @@ router.get("/status/:serviceId", async (req, res) => {
   }
 });
 
-router.get("/stats/:serviceId", queueController.getQueueStats);
+router.get("/stats", queueController.getQueueStats);
 
 process.on("beforeExit", async () => {
   await prisma.$disconnect();

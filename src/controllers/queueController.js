@@ -56,59 +56,60 @@ class QueueController {
     }
   }
   async getQueueStats(req, res) {
-    try {
-      const { serviceId } = req.params;
+  try {
+    // Fetch all active services
+    const services = await prisma.service.findMany({
+      where: { isActive: true },
+    });
 
-      // Validate service
-      const service = await prisma.service.findUnique({
-        where: { id: serviceId },
-      });
-      if (!service) {
-        return res.status(404).json({
-          success: false,
-          message: "Service not found",
+    // For each service, count tickets by status
+    const stats = await Promise.all(
+      services.map(async (service) => {
+        const waitingCount = await prisma.tickets.count({
+          where: { serviceId: service.id, status: "WAITING" },
         });
-      }
+        const inProgressCount = await prisma.tickets.count({
+          where: { serviceId: service.id, status: "IN_PROGRESS" },
+        });
+        const completedCount = await prisma.tickets.count({
+          where: { serviceId: service.id, status: "COMPLETED" },
+        });
+        const cancelledCount = await prisma.tickets.count({
+          where: { serviceId: service.id, status: "CANCELLED" },
+        });
 
-      // Count tickets by status
-      const waitingCount = await prisma.tickets.count({
-        where: { serviceId, status: "WAITING" },
-      });
-      const inProgressCount = await prisma.tickets.count({
-        where: { serviceId, status: "IN_PROGRESS" },
-      });
-      const completedCount = await prisma.tickets.count({
-        where: { serviceId, status: "COMPLETED" },
-      });
-      const cancelledCount = await prisma.tickets.count({
-        where: { serviceId, status: "CANCELLED" },
-      });
+        // Current ticket in progress
+        const currentTicket = await prisma.tickets.findFirst({
+          where: { serviceId: service.id, status: "IN_PROGRESS" },
+          include: { user: { select: { name: true, studentCode: true } } },
+          orderBy: { createdAt: "asc" },
+        });
 
-      // Current ticket in progress
-      const currentTicket = await prisma.tickets.findFirst({
-        where: { serviceId, status: "IN_PROGRESS" },
-        include: { user: { select: { name: true, studentCode: true } } },
-        orderBy: { createdAt: "asc" },
-      });
-
-      res.json({
-        success: true,
-        stats: {
+        return {
+          serviceId: service.id,
+          serviceName: service.name,
           waiting: waitingCount,
           inProgress: inProgressCount,
           completed: completedCount,
           cancelled: cancelledCount,
           currentTicket: currentTicket?.user?.name || null,
-        },
-      });
-    } catch (error) {
-      console.error("Error fetching queue stats:", error);
-      res.status(500).json({
-        success: false,
-        message: "Failed to fetch queue stats",
-      });
-    }
+        };
+      })
+    );
+
+    res.json({
+      success: true,
+      stats,
+    });
+  } catch (error) {
+    console.error("Error fetching queue stats:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch queue stats",
+    });
   }
+}
+
 
   // Get queue status for a service
   async getQueueStatus(req, res) {
