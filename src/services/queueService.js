@@ -699,11 +699,11 @@ class QueueService {
   }
 
   async getAllServices() {
-    // 1. Get services from DB
+    // Get services from DB
     const servicesFromDb = await prisma.service.findMany({
       select: {
         id: true,
-        type: true,
+        // type: true,
         name: true,
         description: true,
         estimatedTime: true,
@@ -711,7 +711,7 @@ class QueueService {
       },
     });
 
-    // 2. Enrich each service with stats + static fields
+    //Static fields
     const services = await Promise.all(
       servicesFromDb.map(async (dbService) => {
         const stats = await this.getQueueStats(dbService.id);
@@ -719,17 +719,14 @@ class QueueService {
 
         return {
           id: dbService.id,
-          type: dbService.type,
+          type: this.SERVICES[dbService.name] || null,
           name: dbService.name,
           description: dbService.description,
           estimatedTime: dbService.estimatedTime,
           isActive: dbService.isActive,
 
-          // 🔗 merge with your static helpers
           operatingHours: this.getOperatingHours(dbService.type),
-          isAvailable, // ✅ awaited value
-
-          // Extra metadata
+          isAvailable,
           stats,
           lastUpdated: new Date().toISOString(),
         };
