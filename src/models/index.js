@@ -316,6 +316,32 @@ class Models {
     });
   }
 
+  static async getTodayServiceStats(serviceTypeOrId) {
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+
+  const todayEnd = new Date();
+  todayEnd.setHours(23, 59, 59, 999);
+
+  const ticketsToday = await prisma.tickets.findMany({
+    where: {
+      serviceId: serviceTypeOrId,
+      status: 'COMPLETED',
+      updatedAt: { gte: todayStart, lte: todayEnd },
+    },
+  });
+
+  const totalServed = ticketsToday.length;
+  const avgServiceTime =
+    ticketsToday.reduce((sum, t) => sum + (t.service_ended_at - t.service_started_at) / 1000, 0) /
+      (ticketsToday.length || 1);
+  const avgWaitTime =
+    ticketsToday.reduce((sum, t) => sum + (t.service_started_at - t.createdAt) / 1000, 0) /
+      (ticketsToday.length || 1);
+
+  return { total_served: totalServed, avg_service_time: avgServiceTime, avg_wait_time: avgWaitTime };
+}
+
   static async getNextWaitingTicket(serviceId) {
     return await prisma.tickets.findFirst({
       where: {
