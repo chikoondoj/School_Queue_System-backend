@@ -1,4 +1,4 @@
-const {Models} = require("../models");
+const { Models } = require("../models");
 
 class QueueService {
   constructor() {
@@ -147,7 +147,7 @@ class QueueService {
     };
   }
 
-    async getActiveTicketsForService(serviceType) {
+  async getActiveTicketsForService(serviceType) {
     const queue = await Models.getQueueByService(serviceType);
     // Filter tickets that are active (waiting or serving)
     return queue.filter(
@@ -157,7 +157,7 @@ class QueueService {
     );
   }
 
-    async getCompletedTicketsForService(serviceType) {
+  async getCompletedTicketsForService(serviceType) {
     const queue = await Models.getQueueByService(serviceType);
     // Filter tickets with status 'completed'
     return queue.filter(
@@ -696,43 +696,40 @@ class QueueService {
   }
 
   async getAllServices() {
-  // Fetch all services from the database
-  const servicesFromDb = await prisma.service.findMany({
-    select: {
-      id: true,
-      type: true,
-      name:true,                
-      description: true,
-      estimatedTime: true,
-      // availableWindows: true,
-      isActive: true,
-    },
-  });
-  console.log("Services from DB:", servicesFromDb);
-
-  // Add stats and extra info per service
-  const services = [];
-
-  for (const service of servicesFromDb) {
-    const stats = await this.getQueueStats(service.id);
-    const isAvailable = await this.isServiceAvailable(service.id);
-
-    services.push({
-      id: service.id,
-      type: service.type,            
-      name: service.name,
-      description: service.description,
-      stats,
-      isAvailable: await isAvailable,
-      operatingHours: this.getOperatingHours(service.id),
-      lastUpdated: new Date().toISOString(),
+    // Fetch all services from the database
+    const servicesFromDb = await prisma.service.findMany({
+      select: {
+        id: true,
+        type: true,
+        name: true,
+        description: true,
+        estimatedTime: true,
+        // availableWindows: true,
+        isActive: true,
+      },
     });
+    console.log("Services from DB:", servicesFromDb);
+
+    // Add stats and extra info per service
+    const services = [];
+
+    for (const service of servicesFromDb) {
+      const stats = await this.getQueueStats(service.id);
+      const isAvailable = await this.isServiceAvailable(service.id);
+
+      services.push({
+        id: service.id,
+        type: service.type,
+        name: service.name,
+        description: service.description,
+        stats,
+        lastUpdated: new Date().toISOString(),
+      });
+    }
+    console.log("Processed services:", services);
+
+    return services;
   }
-  console.log("Processed services:", services);
-
-  return services;
-}
-
 
   async getQueueUpdates(serviceType) {
     const queue = await this.getQueueByService(serviceType);
