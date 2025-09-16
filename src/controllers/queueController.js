@@ -1,6 +1,8 @@
 const queueService = require("../services/queueService");
 const { validationResult } = require("express-validator");
 const jwt = require("jsonwebtoken");
+const { PrismaClient } = require("@prisma/client");
+const prisma = new PrismaClient();
 
 class QueueController {
   // Join a queue
