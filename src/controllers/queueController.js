@@ -55,7 +55,7 @@ class QueueController {
       res.status(500).json({ error: "Failed to join queue" });
     }
   }
-  static async getQueueStats(req, res) {
+  async getQueueStats(req, res) {
     try {
       const { serviceId } = req.params;
 
