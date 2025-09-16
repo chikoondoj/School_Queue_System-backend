@@ -189,7 +189,7 @@ class QueueService {
     return services;
   }
 
-  async getQueueStats(serviceType) {
+  async getQueueStats(serviceId) {
     const queue = await Models.getQueueByService(serviceType);
     const currentlyServing = await prisma.tickets.findFirst({
   where: { serviceId, status: 'IN_PROGRESS' },
