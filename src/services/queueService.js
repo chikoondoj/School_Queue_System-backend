@@ -191,7 +191,10 @@ class QueueService {
 
   async getQueueStats(serviceType) {
     const queue = await Models.getQueueByService(serviceType);
-    const currentlyServing = await Models.getCurrentlyServing(serviceType);
+    const currentlyServing = await prisma.tickets.findFirst({
+  where: { serviceId, status: 'IN_PROGRESS' },
+  orderBy: { createdAt: 'asc' },
+});
     const todayStats = await Models.getTodayServiceStats(serviceType);
     const avgWaitTime = await Models.getAverageWaitTime(serviceType);
 
@@ -437,8 +440,10 @@ class QueueService {
       serviceType,
       10
     );
-    const currentlyServing = await Models.getCurrentlyServing(serviceType);
-    const timeOfDay = new Date().getHours();
+    const currentlyServing = await prisma.tickets.findFirst({
+  where: { serviceId, status: 'IN_PROGRESS' },
+  orderBy: { createdAt: 'asc' },
+});
 
     let avgServiceTime = 15;
     if (recentServiceTimes.length > 0) {
