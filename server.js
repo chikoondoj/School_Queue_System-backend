@@ -19,6 +19,7 @@ const ActivityService = require("./src/services/activityService");
 const QueueStatistics = require("./src/models/queueStatistics");
 const QueueCalculations = require("./src/utils/queueCalculations");
 const { requireSocketAuth } = require("./src/middleware/auth");
+const { prisma } = require("./models");
 
 // Import routes
 const authRoutes = require("./src/routes/auth");
