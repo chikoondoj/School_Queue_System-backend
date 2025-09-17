@@ -648,56 +648,58 @@ const updateQueueStatistics = async () => {
   try {
     console.log("🔄 Updating queue statistics...");
     const services = await QueueService.getAllServices();
-    // console.log("Fetched services:", services);
 
     for (const service of services) {
       try {
+        if (!service || !service.id) {
+          console.warn("Skipping stats update due to missing service or service.id");
+          continue;
+        }
+
+        // Ensure service exists in DB
+        const serviceExists = await prisma.service.findUnique({
+          where: { id: service.id },
+        });
+        if (!serviceExists) {
+          console.warn(`Skipping stats update: Service ${service.id} not found in DB`);
+          continue;
+        }
+
+        // Fetch tickets
         const [activeTickets, completedTickets] = await Promise.all([
           QueueService.getActiveTicketsForService(service.id),
-          QueueService.getCompletedTicketsForService(service.id, 24), // Last 24 hours
+          QueueService.getCompletedTicketsForService(service.id, 24),
         ]);
 
-        const averageServiceTime =
-          QueueCalculations.calculateAverageServiceTime(completedTickets);
+        const averageServiceTime = QueueCalculations.calculateAverageServiceTime(completedTickets);
         const estimatedWaitTime = QueueCalculations.calculateEstimatedWaitTime(
           activeTickets.length,
           averageServiceTime,
           service.availableWindows || 1
         );
-        const services = await QueueService.getAllServices();
 
-        if (!service || !service.id) {
-          console.warn(
-            "Skipping stats update due to missing service or service.id"
-          );
-          continue;
-        }
-        
-        console.log("Services returned by QueueService.getAllServices():", services);
-
-
-        console.log("Upserting stats for serviceId:", service.id);
-        const serviceExists = await prisma.service.findUnique({
-          where: { id: service.id },
-        });
-
-        if (!serviceExists) {
-          console.warn(
-            `Skipping stats update: Service ${service.id} not found in DB`
-          );
-          continue; // move to the next service
-        }
-
-        // Update statistics in database
-        await QueueStatistics.upsert({
-          serviceId: service.id,
-          currentQueueLength: activeTickets.length,
-          estimatedWaitTime,
-          averageServiceTime,
-          isActive: service.isActive,
-          availableWindows: service.availableWindows || 1,
-          completedTicketsToday: completedTickets.length,
-          lastUpdated: new Date(),
+        // Upsert statistics using Prisma
+        await prisma.queue_statistics.upsert({
+          where: { serviceId: service.id }, // must match unique constraint
+          update: {
+            currentQueueLength: activeTickets.length,
+            estimatedWaitTime,
+            averageServiceTime,
+            isActive: service.isActive,
+            availableWindows: service.availableWindows || 1,
+            completedTicketsToday: completedTickets.length,
+            lastUpdated: new Date(),
+          },
+          create: {
+            serviceId: service.id,
+            currentQueueLength: activeTickets.length,
+            estimatedWaitTime,
+            averageServiceTime,
+            isActive: service.isActive,
+            availableWindows: service.availableWindows || 1,
+            completedTicketsToday: completedTickets.length,
+            lastUpdated: new Date(),
+          },
         });
 
         // Broadcast real-time updates
@@ -721,16 +723,11 @@ const updateQueueStatistics = async () => {
           },
         };
 
-        // Broadcast to all queue watchers
         socketService.emitQueueUpdate(service.id, updateData);
-
-        // Also broadcast via our socket system
         broadcastQueueUpdate(updateData, service.id);
+
       } catch (serviceError) {
-        console.error(
-          `Error updating statistics for service ${service.id || "unknown"}:`,
-          serviceError
-        );
+        console.error(`Error updating statistics for service ${service.id}:`, serviceError);
       }
     }
 
@@ -739,6 +736,7 @@ const updateQueueStatistics = async () => {
     console.error("❌ Queue statistics update error:", error);
   }
 };
+
 
 // Start the statistics update job
 const statisticsInterval = setInterval(updateQueueStatistics, 30000); // Every 30 seconds
