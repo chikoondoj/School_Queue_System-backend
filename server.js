@@ -678,7 +678,13 @@ const updateQueueStatistics = async () => {
         const serviceExists = await prisma.service.findUnique({
           where: { id: service.id },
         });
-        console.log("Service exists in DB:", serviceExists);
+
+        if (!serviceExists) {
+          console.warn(
+            `Skipping stats update: Service ${service.id} not found in DB`
+          );
+          continue; // move to the next service
+        }
 
         // Update statistics in database
         await QueueStatistics.upsert({

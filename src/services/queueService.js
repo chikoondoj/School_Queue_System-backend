@@ -1,7 +1,4 @@
 const { Models, prisma } = require("../models");
-// const { PrismaClient } = require('@prisma/client');
-// const prisma = new PrismaClient();
-console.log("Prisma:", prisma);
 
 class QueueService {
   constructor() {
