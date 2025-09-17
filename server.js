@@ -686,9 +686,7 @@ const updateQueueStatistics = async () => {
             estimatedWaitTime,
             averageServiceTime,
             isActive: service.isActive,
-            // availableWindows: service.availableWindows || 1,
-            completedTicketsToday: completedTickets.length,
-            lastUpdated: new Date(),
+            updatedAt: new Date(),
           },
           create: {
             serviceId: service.id,
@@ -696,9 +694,7 @@ const updateQueueStatistics = async () => {
             estimatedWaitTime,
             averageServiceTime,
             isActive: service.isActive,
-            // availableWindows: service.availableWindows || 1,
-            completedTicketsToday: completedTickets.length,
-            lastUpdated: new Date(),
+            updatedAt: new Date(),
           },
         });
 
