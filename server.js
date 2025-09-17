@@ -665,7 +665,6 @@ const updateQueueStatistics = async () => {
           service.availableWindows || 1
         );
         const services = await QueueService.getAllServices();
-        console.log("Fetched services:", services);
 
         if (!service || !service.id) {
           console.warn(
@@ -673,6 +672,9 @@ const updateQueueStatistics = async () => {
           );
           continue;
         }
+        
+        console.log("Services returned by QueueService.getAllServices():", services);
+
 
         console.log("Upserting stats for serviceId:", service.id);
         const serviceExists = await prisma.service.findUnique({
