@@ -56,6 +56,18 @@ class AuthController {
         });
       }
 
+      if (phone) {
+        const existingPhoneUser = await prisma.user.findUnique({
+          where: { phone },
+        });
+        if (existingPhoneUser) {
+          return res.status(400).json({
+            success: false,
+            message: "Phone number is already registered",
+          });
+        }
+      }
+
       //Generate next studentCode
       const lastStudent = await prisma.user.findFirst({
         where: { role: "STUDENT" },
@@ -98,6 +110,7 @@ class AuthController {
         year: parseInt(year),
         password: hashedPassword,
         email: email || null,
+        phone: phone || null,
         role: "STUDENT",
       };
 
