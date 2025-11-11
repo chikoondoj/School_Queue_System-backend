@@ -4,7 +4,7 @@
   "description": "",
   "main": "server.js",
   "scripts": {
-    "migrate" : "prisma migrate deploy",
+    "migrate": "prisma migrate deploy",
     "start": "node server.js",
     "create_services": "node create-services.js",
     "dev": "nodemon server.js",
@@ -43,7 +43,8 @@
     "sequelize": "^6.37.7",
     "socket.io": "^4.8.1",
     "sqlite3": "^5.1.7",
-    "supabase": "^2.34.3"
+    "supabase": "^2.34.3",
+    "twilio": "^5.10.5"
   },
   "devDependencies": {
     "nodemon": "^3.1.10",

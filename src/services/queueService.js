@@ -1,4 +1,5 @@
 const { Models, prisma } = require("../models");
+const { sendSms } = require("./smsService");
 
 class QueueService {
   constructor() {
@@ -55,6 +56,7 @@ class QueueService {
       status: this.TICKET_STATUS.WAITING,
     });
 
+    await this.notifyThirdInLine(serviceId);
     const queueStats = await this.getQueueStats(serviceId);
 
     return {
@@ -356,6 +358,7 @@ class QueueService {
     );
 
     await this.updateQueuePositions(activeTicket.service_type);
+    await this.notifyThirdInLine(serviceId);
 
     return {
       ...cancelledTicket,
@@ -749,6 +752,27 @@ class QueueService {
     const allServices = await this.getAllServices();
     return allServices.filter((service) => service.isAvailable);
   }
+
+  async notifyThirdInLine(serviceId) {
+  const queue = await prisma.tickets.findMany({
+    where: {
+      serviceId,
+      status: "WAITING",
+    },
+    include: {
+      user: true, // include user to get phone and name
+    },
+    orderBy: { createdAt: "asc" },
+  });
+
+  if (queue.length >= 3) {
+    const third = queue[2]; // 0-based index
+    if (third.user?.phone) {
+      const message = `Olá ${third.user.name}, estás em terceiro na fila do serviço ${serviceId}. Prepara-te!`;
+      await sendSms(third.user.phone, message);
+    }
+  }
+}
 }
 
 module.exports = new QueueService();

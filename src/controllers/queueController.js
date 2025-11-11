@@ -3,6 +3,7 @@ const { validationResult } = require("express-validator");
 const jwt = require("jsonwebtoken");
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
+const { sendSms } = require("../services/smsService");
 
 class QueueController {
   // Join a queue
@@ -58,60 +59,59 @@ class QueueController {
     }
   }
   async getQueueStats(req, res) {
-  try {
-    // Fetch all active services
-    const services = await prisma.service.findMany({
-      where: { isActive: true },
-    });
+    try {
+      // Fetch all active services
+      const services = await prisma.service.findMany({
+        where: { isActive: true },
+      });
 
-    // Use Promise.all but only one query per service using groupBy
-    const stats = await Promise.all(
-      services.map(async (service) => {
-        // Aggregate ticket counts by status for this service
-        const counts = await prisma.tickets.groupBy({
-          by: ['status'],
-          where: { serviceId: service.id },
-          _count: { status: true },
-        });
+      // Use Promise.all but only one query per service using groupBy
+      const stats = await Promise.all(
+        services.map(async (service) => {
+          // Aggregate ticket counts by status for this service
+          const counts = await prisma.tickets.groupBy({
+            by: ["status"],
+            where: { serviceId: service.id },
+            _count: { status: true },
+          });
 
-        // Convert counts array to object for easy access
-        const countMap = counts.reduce((acc, curr) => {
-          acc[curr.status] = curr._count.status;
-          return acc;
-        }, {});
+          // Convert counts array to object for easy access
+          const countMap = counts.reduce((acc, curr) => {
+            acc[curr.status] = curr._count.status;
+            return acc;
+          }, {});
 
-        // Get the first ticket currently in progress (if any)
-        const currentTicket = await prisma.tickets.findFirst({
-          where: { serviceId: service.id, status: 'IN_PROGRESS' },
-          include: { user: { select: { name: true, studentCode: true } } },
-          orderBy: { createdAt: 'asc' },
-        });
+          // Get the first ticket currently in progress (if any)
+          const currentTicket = await prisma.tickets.findFirst({
+            where: { serviceId: service.id, status: "IN_PROGRESS" },
+            include: { user: { select: { name: true, studentCode: true } } },
+            orderBy: { createdAt: "asc" },
+          });
 
-        return {
-          serviceId: service.id,
-          serviceName: service.name,
-          waiting: countMap['WAITING'] || 0,
-          inProgress: countMap['IN_PROGRESS'] || 0,
-          completed: countMap['COMPLETED'] || 0,
-          cancelled: countMap['CANCELLED'] || 0,
-          currentTicket: currentTicket?.user?.name || null,
-        };
-      })
-    );
+          return {
+            serviceId: service.id,
+            serviceName: service.name,
+            waiting: countMap["WAITING"] || 0,
+            inProgress: countMap["IN_PROGRESS"] || 0,
+            completed: countMap["COMPLETED"] || 0,
+            cancelled: countMap["CANCELLED"] || 0,
+            currentTicket: currentTicket?.user?.name || null,
+          };
+        })
+      );
 
-    res.json({
-      success: true,
-      stats,
-    });
-  } catch (error) {
-    console.error('Error fetching queue stats:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch queue stats',
-    });
+      res.json({
+        success: true,
+        stats,
+      });
+    } catch (error) {
+      console.error("Error fetching queue stats:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to fetch queue stats",
+      });
+    }
   }
-}
-
 
   // Get queue status for a service
   async getQueueStatus(req, res) {
@@ -182,6 +182,18 @@ class QueueController {
         service: serviceId,
         ticket: result,
       });
+
+      const queueData = await queueService.getQueueByService(serviceId);
+      const waiting = queueData.filter((t) => t.status === "waiting");
+
+      if (waiting.length >= 3) {
+        const thirdInLine = waiting[2]; // 0-based index
+        if (thirdInLine && thirdInLine.user?.phone) {
+          const phone = thirdInLine.user.phone; // Ensure your Prisma model includes `phone`
+          const message = `Olá ${thirdInLine.user.name}, estás em terceiro na fila do serviço ${serviceId}. Prepara-te!`;
+          await sendSms(phone, message);
+        }
+      }
 
       res.json({
         message: "Student called successfully",
@@ -492,9 +504,7 @@ class QueueController {
       }
 
       // Get current position in queue
-      const queueData = await queueService.getQueueByService(
-        ticket.serviceId
-      );
+      const queueData = await queueService.getQueueByService(ticket.serviceId);
       const waitingTickets = queueData.filter((t) => t.status === "waiting");
       const currentPosition =
         waitingTickets.findIndex((t) => t.id === ticket.id) + 1;
@@ -510,8 +520,7 @@ class QueueController {
       };
 
       const estimatedWaitTime =
-        currentPosition *
-        (serviceInfo[ticket.serviceId]?.estimatedTime || 15);
+        currentPosition * (serviceInfo[ticket.serviceId]?.estimatedTime || 15);
 
       res.json({
         success: true,

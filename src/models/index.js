@@ -148,6 +148,7 @@ class Models {
             studentCode: true,
             course: true,
             year: true,
+            phone: true,
           },
         },
         service: {
@@ -172,6 +173,7 @@ class Models {
             studentCode: true,
             course: true,
             year: true,
+            phone: true,
           },
         },
         service: {
@@ -194,6 +196,7 @@ class Models {
             studentCode: true,
             course: true,
             year: true,
+            phone: true,
           },
         },
         service: {
@@ -242,6 +245,7 @@ class Models {
           select: {
             name: true,
             studentCode: true,
+            phone: true,
           },
         },
         service: {
@@ -302,6 +306,7 @@ class Models {
             studentCode: true,
             course: true,
             year: true,
+            phone: true,
           },
         },
         service: {
@@ -847,6 +852,7 @@ class Models {
             studentCode: true,
             course: true,
             year: true,
+            phone: true,
           },
         },
         service: {
@@ -885,6 +891,7 @@ class Models {
             studentCode: true,
             course: true,
             year: true,
+            phone: true,
           },
         },
         service: {
