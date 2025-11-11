@@ -28,6 +28,7 @@ class QueueService {
 
   async addToQueue(
     studentId,
+    serviceId,
     priority = this.PRIORITY_LEVELS.NORMAL,
     notes = null
   ) {
