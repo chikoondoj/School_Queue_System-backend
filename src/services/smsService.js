@@ -1,39 +1,29 @@
-const axios = require("axios");
+// services/smsService.js
+const twilio = require("twilio");
 
-// Load your SmsMode API token from .env
-const smsModeToken = process.env.SMSMODE_TOKEN;
+const accountSid = process.env.TWILIO_ACCOUNT_SID;
+const authToken = process.env.TWILIO_AUTH_TOKEN;
+const messagingServiceSid = process.env.TWILIO_MESSAGING_SERVICE_SID;
 
-if (!smsModeToken) {
-  console.warn("⚠️ SmsMode API token not set in environment variables!");
+if (!accountSid || !authToken || !messagingServiceSid) {
+  console.warn("Twilio credentials or Messaging Service SID are missing!");
 }
 
-/**
- * Send an SMS message using SmsMode API
- * @param {string} to - Recipient phone number in international format (e.g. 25884XXXXXXX)
- * @param {string} message - Message content
- */
+const client = twilio(accountSid, authToken);
+
 async function sendSms(to, message) {
-  if (!to) {
-    console.warn("⚠️ No phone number provided to sendSms()");
-    return;
-  }
-
+  if (!to) return;
   try {
-    const url = "https://api.smsmode.com/http/1.6/sendSMS.do";
-
-    const params = new URLSearchParams({
-      accessToken: smsModeToken,
-      numero: to,
-      message: message,
-      emetteur: "QueueSys" // optional sender name (max 11 chars, letters only)
+    const sms = await client.messages.create({
+      body: message,
+      messagingServiceSid: messagingServiceSid, // use Messaging Service
+      to: to,
     });
-
-    const response = await axios.post(url, params);
-
-    // SmsMode returns simple text or code for success/error
-    console.log("✅ SmsMode response:", response.data);
+    console.log("SMS sent:", sms.sid);
+    return sms;
   } catch (error) {
-    console.error("❌ Failed to send SMS via SmsMode:", error.response?.data || error.message);
+    console.error("Failed to send SMS:", error);
+    throw error;
   }
 }
 

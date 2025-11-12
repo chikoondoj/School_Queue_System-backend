@@ -56,6 +56,27 @@ class AuthController {
         });
       }
 
+      if (phone) {
+        const phoneRegex = /^(?:\+258)?(82|83|84|85)\d{7}$/;
+        if (!phoneRegex.test(phone)) {
+          console.log("Invalid phone number format");
+          return res.status(400).json({
+            success: false,
+            message:
+              "Invalid phone number. Only Mozambican numbers (Tmcel and Vodacom) starting with +258 are allowed.",
+          });
+        }
+        const existingPhoneUser = await prisma.user.findUnique({
+          where: { phone },
+        });
+        if (existingPhoneUser) {
+          return res.status(400).json({
+            success: false,
+            message: "Phone number is already registered",
+          });
+        }
+      }
+
       //Generate next studentCode
       const lastStudent = await prisma.user.findFirst({
         where: { role: "STUDENT" },
@@ -98,6 +119,7 @@ class AuthController {
         year: parseInt(year),
         password: hashedPassword,
         email: email || null,
+        phone: phone || null,
         role: "STUDENT",
       };
 
@@ -126,6 +148,7 @@ class AuthController {
           studentCode: true,
           name: true,
           course: true,
+          phone: true,
           year: true,
           email: true,
           role: true,

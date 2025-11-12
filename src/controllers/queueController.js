@@ -49,6 +49,8 @@ class QueueController {
         });
       }
 
+      await sendSms(phone, message);
+
       res.status(201).json({
         message: "Successfully joined the queue",
         ticket: ticket,
