@@ -15,9 +15,9 @@ async function callNext(req, res) {
     const updated = await Models.updateTicketStatus(
       req.params.id,
       "CALLED",
+      clerkId,
       new Date(),
-      null,
-      clerkId  // pass clerkId to set in the ticket
+      null
     );
 
     res.json({ success: true, data: updated });
@@ -26,6 +26,7 @@ async function callNext(req, res) {
     res.status(500).json({ success: false, message: err.message });
   }
 }
+
 
 
 // Clerk: auto-call next waiting ticket for a service
