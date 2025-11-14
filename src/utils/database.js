@@ -226,7 +226,7 @@ class Database {
           t.id,
           t.position,
           t.status,
-          t."createdA"t,
+          t."createdAt",
           t."updatedAt",
           t.calledAt,
           t."completedAt",
