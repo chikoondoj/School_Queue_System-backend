@@ -223,7 +223,17 @@ class Database {
       await client.query(`
         CREATE OR REPLACE VIEW active_tickets_view AS
         SELECT 
-          t.*,
+          t.id,
+          t.position,
+          t.status,
+          t.createdAt,
+          t.updatedAt,
+          t.calledAt,
+          t.completedAt,
+          t."userId",
+          t."serviceId",
+          t."clerkId",
+          t.isnew,
           u.name as user_name,
           u."studentCode",
           u.course,
