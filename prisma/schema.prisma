@@ -27,6 +27,7 @@ model User {
   activity_logs activity_logs[]
   tickets       Tickets[]
 
+  attendedTickets Tickets[] @relation("ClerkTickets")
   @@index([studentCode], map: "idx_users_student_code")
   @@map("users")
 }
@@ -57,10 +58,12 @@ model Tickets {
   completedAt   DateTime?
   userId        String
   serviceId     String
+  clerkId       String?
   isNew         Boolean         @default(true) @map("isnew")
   activity_logs activity_logs[]
   service       Service         @relation(fields: [serviceId], references: [id], onDelete: Cascade)
   user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  clerk         User?           @relation("ClerkTickets", fields: [clerkId], references: [id])
 
   @@index([createdAt], map: "idx_tickets_created_at")
   @@index([serviceId], map: "idx_tickets_service_id")

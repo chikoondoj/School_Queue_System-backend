@@ -322,30 +322,38 @@ class Models {
   }
 
   static async getTodayServiceStats(serviceTypeOrId) {
-  const todayStart = new Date();
-  todayStart.setHours(0, 0, 0, 0);
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
 
-  const todayEnd = new Date();
-  todayEnd.setHours(23, 59, 59, 999);
+    const todayEnd = new Date();
+    todayEnd.setHours(23, 59, 59, 999);
 
-  const ticketsToday = await prisma.tickets.findMany({
-    where: {
-      serviceId: serviceTypeOrId,
-      status: 'COMPLETED',
-      updatedAt: { gte: todayStart, lte: todayEnd },
-    },
-  });
+    const ticketsToday = await prisma.tickets.findMany({
+      where: {
+        serviceId: serviceTypeOrId,
+        status: "COMPLETED",
+        updatedAt: { gte: todayStart, lte: todayEnd },
+      },
+    });
 
-  const totalServed = ticketsToday.length;
-  const avgServiceTime =
-    ticketsToday.reduce((sum, t) => sum + (t.service_ended_at - t.service_started_at) / 1000, 0) /
-      (ticketsToday.length || 1);
-  const avgWaitTime =
-    ticketsToday.reduce((sum, t) => sum + (t.service_started_at - t.createdAt) / 1000, 0) /
-      (ticketsToday.length || 1);
+    const totalServed = ticketsToday.length;
+    const avgServiceTime =
+      ticketsToday.reduce(
+        (sum, t) => sum + (t.service_ended_at - t.service_started_at) / 1000,
+        0
+      ) / (ticketsToday.length || 1);
+    const avgWaitTime =
+      ticketsToday.reduce(
+        (sum, t) => sum + (t.service_started_at - t.createdAt) / 1000,
+        0
+      ) / (ticketsToday.length || 1);
 
-  return { total_served: totalServed, avg_service_time: avgServiceTime, avg_wait_time: avgWaitTime };
-}
+    return {
+      total_served: totalServed,
+      avg_service_time: avgServiceTime,
+      avg_wait_time: avgWaitTime,
+    };
+  }
 
   static async getNextWaitingTicket(serviceId) {
     return await prisma.tickets.findFirst({
@@ -375,6 +383,7 @@ class Models {
   static async updateTicketStatus(
     id,
     status,
+    clerkId = null,
     calledAt = null,
     completedAt = null
   ) {
@@ -382,6 +391,10 @@ class Models {
       status: status.toUpperCase(),
       // updatedAt: new Date(),
     };
+
+    if (clerkId) {
+      updateData.clerkId = clerkId;
+    }
 
     if (status.toUpperCase() === "CALLED" && calledAt) {
       updateData.calledAt = calledAt;
@@ -394,6 +407,11 @@ class Models {
     return await prisma.tickets.update({
       where: { id },
       data: updateData,
+      include: {
+        clerk: { select: { id: true, name: true } },
+        user: { select: { id: true, name: true, studentCode: true } },
+        service: { select: { id: true, name: true } },
+      },
     });
   }
 
@@ -414,83 +432,82 @@ class Models {
   }
 
   static async getAllActiveQueues() {
-  // 1. Get grouped queues
-  const queues = await prisma.tickets.groupBy({
-    by: ["serviceId"],
-    where: {
-      status: { in: ["WAITING", "CALLED", "IN_PROGRESS"] },
-    },
-    _count: { _all: true },
-  });
+    // 1. Get grouped queues
+    const queues = await prisma.tickets.groupBy({
+      by: ["serviceId"],
+      where: {
+        status: { in: ["WAITING", "CALLED", "IN_PROGRESS"] },
+      },
+      _count: { _all: true },
+    });
 
-  if (!queues.length) return [];
+    if (!queues.length) return [];
 
-  // 2. Get all serviceIds at once
-  const serviceIds = queues.map(q => q.serviceId);
+    // 2. Get all serviceIds at once
+    const serviceIds = queues.map((q) => q.serviceId);
 
-  const services = await prisma.service.findMany({
-    where: { id: { in: serviceIds } },
-  });
+    const services = await prisma.service.findMany({
+      where: { id: { in: serviceIds } },
+    });
 
-  const serviceMap = services.reduce((acc, s) => {
-    acc[s.id] = s.name;
-    return acc;
-  }, {});
+    const serviceMap = services.reduce((acc, s) => {
+      acc[s.id] = s.name;
+      return acc;
+    }, {});
 
-  // 3. Get currently serving tickets for all services at once
-  const currentlyServingTickets = await prisma.tickets.findMany({
-    where: {
-      serviceId: { in: serviceIds },
-      status: "IN_PROGRESS",
-    },
-    include: {
-      user: { select: { id: true, name: true } },
-    },
-    orderBy: { createdAt: "asc" },
-  });
+    // 3. Get currently serving tickets for all services at once
+    const currentlyServingTickets = await prisma.tickets.findMany({
+      where: {
+        serviceId: { in: serviceIds },
+        status: "IN_PROGRESS",
+      },
+      include: {
+        user: { select: { id: true, name: true } },
+      },
+      orderBy: { createdAt: "asc" },
+    });
 
-  const servingMap = currentlyServingTickets.reduce((acc, t) => {
-    acc[t.serviceId] = t;
-    return acc;
-  }, {});
+    const servingMap = currentlyServingTickets.reduce((acc, t) => {
+      acc[t.serviceId] = t;
+      return acc;
+    }, {});
 
-  // 4. Get next waiting ticket for all services at once
-  const nextWaitingTickets = await prisma.tickets.findMany({
-    where: {
-      serviceId: { in: serviceIds },
-      status: "WAITING",
-    },
-    include: {
-      user: { select: { id: true, name: true } },
-    },
-    orderBy: { createdAt: "asc" },
-  });
+    // 4. Get next waiting ticket for all services at once
+    const nextWaitingTickets = await prisma.tickets.findMany({
+      where: {
+        serviceId: { in: serviceIds },
+        status: "WAITING",
+      },
+      include: {
+        user: { select: { id: true, name: true } },
+      },
+      orderBy: { createdAt: "asc" },
+    });
 
-  const nextMap = {};
-  for (const ticket of nextWaitingTickets) {
-    if (!nextMap[ticket.serviceId]) {
-      nextMap[ticket.serviceId] = ticket; // first WAITING = next in line
+    const nextMap = {};
+    for (const ticket of nextWaitingTickets) {
+      if (!nextMap[ticket.serviceId]) {
+        nextMap[ticket.serviceId] = ticket; // first WAITING = next in line
+      }
     }
+
+    // 5. Assemble enriched queues
+    return queues.map((queue) => {
+      const serviceName = serviceMap[queue.serviceId] || "Unknown Service";
+      const serving = servingMap[queue.serviceId];
+      const next = nextMap[queue.serviceId];
+
+      return {
+        service_id: queue.serviceId,
+        service_name: serviceName,
+        total_waiting: queue._count._all,
+        currently_serving_user_id: serving?.user?.id || null,
+        currently_serving_name: serving?.user?.name || null,
+        next_user_id: next?.user?.id || null,
+        next_user_name: next?.user?.name || null,
+      };
+    });
   }
-
-  // 5. Assemble enriched queues
-  return queues.map(queue => {
-    const serviceName = serviceMap[queue.serviceId] || "Unknown Service";
-    const serving = servingMap[queue.serviceId];
-    const next = nextMap[queue.serviceId];
-
-    return {
-      service_id: queue.serviceId,
-      service_name: serviceName,
-      total_waiting: queue._count._all,
-      currently_serving_user_id: serving?.user?.id || null,
-      currently_serving_name: serving?.user?.name || null,
-      next_user_id: next?.user?.id || null,
-      next_user_name: next?.user?.name || null,
-    };
-  });
-}
-
 
   static async getQueueHistory(filters = {}) {
     const where = {};

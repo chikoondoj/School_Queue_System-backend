@@ -310,6 +310,8 @@ class AdminController {
           serviceName: currentlyServing.service.name,
           userName: currentlyServing.user.name,
           userCode: currentlyServing.user.studentCode,
+          clerkId: currentlyServing.clerkId,
+          clerkName: currentlyServing.clerk?.name,
           status: "COMPLETED",
           completedAt: new Date(),
         },
@@ -423,9 +425,8 @@ class AdminController {
     const startDate = new Date(year, month - 1, 1);
     const endDate = new Date(year, month, 1);
 
-    // Group tickets completed within the selected month
-    const report = await prisma.tickets.groupBy({
-      by: ["serviceId"],
+    // Fetch all completed tickets within the month including service and clerk info
+    const tickets = await prisma.tickets.findMany({
       where: {
         status: "COMPLETED",
         completedAt: {
@@ -433,24 +434,46 @@ class AdminController {
           lt: endDate,
         },
       },
-      _count: { serviceId: true },
+      include: {
+        clerk: { select: { id: true, name: true } }, // make sure your Tickets model has clerkId relation
+        service: { select: { id: true, name: true } },
+      },
     });
 
-    // Attach service names
-    const results = [];
+    // Aggregate tickets by service and clerk
+    const serviceMap = new Map();
 
-    for (const r of report) {
-      const service = await prisma.service.findUnique({
-        where: { id: r.serviceId },
-        select: { name: true },
-      });
+    tickets.forEach((ticket) => {
+      const { service, clerk } = ticket;
 
-      results.push({
-        serviceId: r.serviceId,
-        serviceName: service?.name || "Unknown",
-        totalAttended: r._count.serviceId,
-      });
-    }
+      if (!serviceMap.has(service.id)) {
+        serviceMap.set(service.id, {
+          serviceId: service.id,
+          serviceName: service.name,
+          clerks: new Map(),
+        });
+      }
+
+      const serviceEntry = serviceMap.get(service.id);
+      const clerkId = clerk?.id || "unknown";
+
+      if (!serviceEntry.clerks.has(clerkId)) {
+        serviceEntry.clerks.set(clerkId, {
+          clerkId,
+          clerkName: clerk?.name || "Unknown Clerk",
+          totalAttended: 0,
+        });
+      }
+
+      serviceEntry.clerks.get(clerkId).totalAttended += 1;
+    });
+
+    // Convert Map to array and nested clerks array
+    const results = Array.from(serviceMap.values()).map((service) => ({
+      serviceId: service.serviceId,
+      serviceName: service.serviceName,
+      clerks: Array.from(service.clerks.values()),
+    }));
 
     res.json({
       success: true,
@@ -462,6 +485,7 @@ class AdminController {
     res.status(500).json({
       success: false,
       message: "Failed to generate monthly report",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
     });
   }
 }

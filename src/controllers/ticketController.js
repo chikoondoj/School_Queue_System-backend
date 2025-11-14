@@ -17,14 +17,17 @@ async function callNext(req, res) {
 // Clerk: auto-call next waiting ticket for a service
 async function callNextForService(req, res) {
   try {
+    const clerkId = req.user.id;
     const nextTicket = await Models.getNextWaitingTicket(req.params.serviceId);
     if (!nextTicket) {
       return res.json({ success: false, message: "No waiting tickets" });
     }
+
     const updated = await Models.updateTicketStatus(
       nextTicket.id,
       "CALLED",
-      new Date()
+      new Date(),
+      clerkId
     );
     res.json({ success: true, data: updated });
   } catch (err) {
