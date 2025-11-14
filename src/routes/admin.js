@@ -21,5 +21,8 @@ router.post('/cancel-service', requireAdmin, adminController.cancelService);
 router.get('/history', requireAdmin, adminController.getQueueHistory);
 
 router.patch("/assign-service/:clerkId", clerkController.assignService);
+// Monthly report - matches getMonthlyReport method
+router.get('/reports/monthly', requireAdmin, adminController.getMonthlyReport);
+
 
 module.exports = router;

@@ -1,4 +1,4 @@
-const { PrismaClient } = require('@prisma/client');
+const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 
 class AdminController {
@@ -12,31 +12,31 @@ class AdminController {
           _count: {
             select: {
               queueEntries: {
-                where: { status: 'WAITING' }
-              }
-            }
-          }
-        }
+                where: { status: "WAITING" },
+              },
+            },
+          },
+        },
       });
 
       // Get currently being served across all services
       const currentlyServing = await prisma.queueEntry.findMany({
-        where: { status: 'BEING_SERVED' },
+        where: { status: "BEING_SERVED" },
         include: {
           user: {
             select: {
               name: true,
               studentCode: true,
               course: true,
-              year: true
-            }
+              year: true,
+            },
           },
           service: {
             select: {
-              name: true
-            }
-          }
-        }
+              name: true,
+            },
+          },
+        },
       });
 
       // Get today's statistics
@@ -46,48 +46,50 @@ class AdminController {
       tomorrow.setDate(tomorrow.getDate() + 1);
 
       const todayStats = await prisma.queueHistory.groupBy({
-        by: ['status'],
+        by: ["status"],
         where: {
           createdAt: {
             gte: today,
-            lt: tomorrow
-          }
+            lt: tomorrow,
+          },
         },
         _count: {
-          status: true
-        }
+          status: true,
+        },
       });
 
       const stats = {
-        totalServedToday: todayStats.find(s => s.status === 'COMPLETED')?._count?.status || 0,
-        totalCancelledToday: todayStats.find(s => s.status === 'CANCELLED')?._count?.status || 0,
+        totalServedToday:
+          todayStats.find((s) => s.status === "COMPLETED")?._count?.status || 0,
+        totalCancelledToday:
+          todayStats.find((s) => s.status === "CANCELLED")?._count?.status || 0,
         currentlyWaiting: await prisma.queueEntry.count({
-          where: { status: 'WAITING' }
+          where: { status: "WAITING" },
         }),
-        currentlyServing: currentlyServing.length
+        currentlyServing: currentlyServing.length,
       };
 
       res.json({
         success: true,
         data: {
-          services: services.map(service => ({
+          services: services.map((service) => ({
             id: service.id,
             name: service.name,
             description: service.description,
             waitingCount: service._count.queueEntries,
-            isActive: service.isActive
+            isActive: service.isActive,
           })),
           currentlyServing,
-          stats
-        }
+          stats,
+        },
       });
-
     } catch (error) {
-      console.error('Dashboard error:', error);
+      console.error("Dashboard error:", error);
       res.status(500).json({
         success: false,
-        message: 'Failed to get dashboard data',
-        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        message: "Failed to get dashboard data",
+        error:
+          process.env.NODE_ENV === "development" ? error.message : undefined,
       });
     }
   }
@@ -98,13 +100,13 @@ class AdminController {
       const { serviceId } = req.params;
 
       const service = await prisma.service.findUnique({
-        where: { id: parseInt(serviceId) }
+        where: { id: parseInt(serviceId) },
       });
 
       if (!service) {
         return res.status(404).json({
           success: false,
-          message: 'Service not found'
+          message: "Service not found",
         });
       }
 
@@ -112,8 +114,8 @@ class AdminController {
         where: {
           serviceId: parseInt(serviceId),
           status: {
-            in: ['WAITING', 'BEING_SERVED']
-          }
+            in: ["WAITING", "BEING_SERVED"],
+          },
         },
         include: {
           user: {
@@ -122,13 +124,13 @@ class AdminController {
               name: true,
               studentCode: true,
               course: true,
-              year: true
-            }
-          }
+              year: true,
+            },
+          },
         },
         orderBy: {
-          createdAt: 'asc'
-        }
+          createdAt: "asc",
+        },
       });
 
       res.json({
@@ -137,25 +139,28 @@ class AdminController {
           service,
           queue: queueEntries.map((entry, index) => ({
             id: entry.id,
-            position: entry.status === 'WAITING' ? index + 1 : 'Being Served',
+            position: entry.status === "WAITING" ? index + 1 : "Being Served",
             student: entry.user,
             status: entry.status,
             joinedAt: entry.createdAt,
-            waitTime: this.calculateWaitTime(entry.createdAt)
+            waitTime: this.calculateWaitTime(entry.createdAt),
           })),
           summary: {
-            totalWaiting: queueEntries.filter(e => e.status === 'WAITING').length,
-            currentlyServing: queueEntries.filter(e => e.status === 'BEING_SERVED').length
-          }
-        }
+            totalWaiting: queueEntries.filter((e) => e.status === "WAITING")
+              .length,
+            currentlyServing: queueEntries.filter(
+              (e) => e.status === "BEING_SERVED"
+            ).length,
+          },
+        },
       });
-
     } catch (error) {
-      console.error('Get service queue error:', error);
+      console.error("Get service queue error:", error);
       res.status(500).json({
         success: false,
-        message: 'Failed to get service queue',
-        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        message: "Failed to get service queue",
+        error:
+          process.env.NODE_ENV === "development" ? error.message : undefined,
       });
     }
   }
@@ -169,19 +174,19 @@ class AdminController {
       await prisma.queueEntry.updateMany({
         where: {
           serviceId: parseInt(serviceId),
-          status: 'BEING_SERVED'
+          status: "BEING_SERVED",
         },
         data: {
-          status: 'COMPLETED',
-          completedAt: new Date()
-        }
+          status: "COMPLETED",
+          completedAt: new Date(),
+        },
       });
 
       // Get the next waiting student
       const nextStudent = await prisma.queueEntry.findFirst({
         where: {
           serviceId: parseInt(serviceId),
-          status: 'WAITING'
+          status: "WAITING",
         },
         include: {
           user: {
@@ -190,31 +195,31 @@ class AdminController {
               name: true,
               studentCode: true,
               course: true,
-              year: true
-            }
+              year: true,
+            },
           },
           service: {
             select: {
-              name: true
-            }
-          }
+              name: true,
+            },
+          },
         },
         orderBy: {
-          createdAt: 'asc'
-        }
+          createdAt: "asc",
+        },
       });
 
       if (!nextStudent) {
         return res.status(404).json({
           success: false,
-          message: 'No students waiting in queue'
+          message: "No students waiting in queue",
         });
       }
 
       // Update next student to being served
       const updatedEntry = await prisma.queueEntry.update({
         where: { id: nextStudent.id },
-        data: { status: 'BEING_SERVED' },
+        data: { status: "BEING_SERVED" },
         include: {
           user: {
             select: {
@@ -222,23 +227,23 @@ class AdminController {
               name: true,
               studentCode: true,
               course: true,
-              year: true
-            }
+              year: true,
+            },
           },
           service: {
             select: {
-              name: true
-            }
-          }
-        }
+              name: true,
+            },
+          },
+        },
       });
 
       // Emit socket event for real-time updates
-      req.io.to(`service-${serviceId}`).emit('queue-updated', {
-        type: 'NEXT_CALLED',
+      req.io.to(`service-${serviceId}`).emit("queue-updated", {
+        type: "NEXT_CALLED",
         serviceId: parseInt(serviceId),
         student: updatedEntry.user,
-        timestamp: new Date()
+        timestamp: new Date(),
       });
 
       res.json({
@@ -250,17 +255,17 @@ class AdminController {
             student: updatedEntry.user,
             service: updatedEntry.service.name,
             status: updatedEntry.status,
-            joinedAt: updatedEntry.createdAt
-          }
-        }
+            joinedAt: updatedEntry.createdAt,
+          },
+        },
       });
-
     } catch (error) {
-      console.error('Call next error:', error);
+      console.error("Call next error:", error);
       res.status(500).json({
         success: false,
-        message: 'Failed to call next student',
-        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        message: "Failed to call next student",
+        error:
+          process.env.NODE_ENV === "development" ? error.message : undefined,
       });
     }
   }
@@ -273,18 +278,18 @@ class AdminController {
       const currentlyServing = await prisma.queueEntry.findFirst({
         where: {
           serviceId: parseInt(serviceId),
-          status: 'BEING_SERVED'
+          status: "BEING_SERVED",
         },
         include: {
           user: true,
-          service: true
-        }
+          service: true,
+        },
       });
 
       if (!currentlyServing) {
         return res.status(404).json({
           success: false,
-          message: 'No student currently being served'
+          message: "No student currently being served",
         });
       }
 
@@ -292,9 +297,9 @@ class AdminController {
       await prisma.queueEntry.update({
         where: { id: currentlyServing.id },
         data: {
-          status: 'COMPLETED',
-          completedAt: new Date()
-        }
+          status: "COMPLETED",
+          completedAt: new Date(),
+        },
       });
 
       // Add to history
@@ -305,29 +310,29 @@ class AdminController {
           serviceName: currentlyServing.service.name,
           userName: currentlyServing.user.name,
           userCode: currentlyServing.user.studentCode,
-          status: 'COMPLETED',
-          completedAt: new Date()
-        }
+          status: "COMPLETED",
+          completedAt: new Date(),
+        },
       });
 
       // Emit socket event
-      req.io.to(`service-${serviceId}`).emit('queue-updated', {
-        type: 'SERVICE_COMPLETED',
+      req.io.to(`service-${serviceId}`).emit("queue-updated", {
+        type: "SERVICE_COMPLETED",
         serviceId: parseInt(serviceId),
-        timestamp: new Date()
+        timestamp: new Date(),
       });
 
       res.json({
         success: true,
-        message: `Service completed for ${currentlyServing.user.name}`
+        message: `Service completed for ${currentlyServing.user.name}`,
       });
-
     } catch (error) {
-      console.error('Complete service error:', error);
+      console.error("Complete service error:", error);
       res.status(500).json({
         success: false,
-        message: 'Failed to complete service',
-        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        message: "Failed to complete service",
+        error:
+          process.env.NODE_ENV === "development" ? error.message : undefined,
       });
     }
   }
@@ -356,7 +361,7 @@ class AdminController {
 
         where.completedAt = {
           gte: startDate,
-          lte: endDate
+          lte: endDate,
         };
       }
 
@@ -364,19 +369,19 @@ class AdminController {
         prisma.queueHistory.findMany({
           where,
           orderBy: {
-            completedAt: 'desc'
+            completedAt: "desc",
           },
           skip: parseInt(skip),
           take: parseInt(limit),
           include: {
             service: {
               select: {
-                name: true
-              }
-            }
-          }
+                name: true,
+              },
+            },
+          },
         }),
-        prisma.queueHistory.count({ where })
+        prisma.queueHistory.count({ where }),
       ]);
 
       res.json({
@@ -388,158 +393,206 @@ class AdminController {
             totalPages: Math.ceil(total / limit),
             totalItems: total,
             hasNext: skip + parseInt(limit) < total,
-            hasPrev: parseInt(page) > 1
-          }
-        }
+            hasPrev: parseInt(page) > 1,
+          },
+        },
       });
-
     } catch (error) {
-      console.error('Get history error:', error);
+      console.error("Get history error:", error);
       res.status(500).json({
         success: false,
-        message: 'Failed to get queue history',
-        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        message: "Failed to get queue history",
+        error:
+          process.env.NODE_ENV === "development" ? error.message : undefined,
+      });
+    }
+  }
+
+  // Get monthly report per service
+  async getMonthlyReport(req, res) {
+    try {
+      const { month, year } = req.query;
+
+      if (!month || !year) {
+        return res.status(400).json({
+          success: false,
+          message: "month and year are required. Example: ?month=3&year=2025",
+        });
+      }
+
+      const startDate = new Date(year, month - 1, 1);
+      const endDate = new Date(year, month, 1);
+
+      const report = await prisma.queueHistory.groupBy({
+        by: ["serviceId", "serviceName"],
+        where: {
+          status: "COMPLETED",
+          completedAt: {
+            gte: startDate,
+            lt: endDate,
+          },
+        },
+        _count: {
+          serviceId: true,
+        },
+      });
+
+      res.json({
+        success: true,
+        data: report.map((r) => ({
+          serviceId: r.serviceId,
+          serviceName: r.serviceName,
+          totalStudentsThisMonth: r._count.serviceId,
+        })),
+      });
+    } catch (error) {
+      console.error("Monthly report error:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to generate monthly report",
+        error:
+          process.env.NODE_ENV === "development" ? error.message : undefined,
       });
     }
   }
 
   // Add this method to your AdminController class
 
-async cancelService(req, res) {
-  try {
-    const { queueId } = req.body;
+  async cancelService(req, res) {
+    try {
+      const { queueId } = req.body;
 
-    if (!queueId) {
-      return res.status(400).json({
-        success: false,
-        message: 'Queue ID is required'
-      });
-    }
+      if (!queueId) {
+        return res.status(400).json({
+          success: false,
+          message: "Queue ID is required",
+        });
+      }
 
-    // Find the queue entry
-    const queueEntry = await prisma.queueEntry.findUnique({
-      where: { id: parseInt(queueId) },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            studentCode: true,
-            course: true,
-            year: true
-          }
+      // Find the queue entry
+      const queueEntry = await prisma.queueEntry.findUnique({
+        where: { id: parseInt(queueId) },
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              studentCode: true,
+              course: true,
+              year: true,
+            },
+          },
+          service: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
         },
-        service: {
-          select: {
-            id: true,
-            name: true
-          }
-        }
+      });
+
+      if (!queueEntry) {
+        return res.status(404).json({
+          success: false,
+          message: "Queue entry not found",
+        });
       }
-    });
 
-    if (!queueEntry) {
-      return res.status(404).json({
-        success: false,
-        message: 'Queue entry not found'
-      });
-    }
+      // Check if already cancelled or completed
+      if (queueEntry.status === "CANCELLED") {
+        return res.status(400).json({
+          success: false,
+          message: "Service is already cancelled",
+        });
+      }
 
-    // Check if already cancelled or completed
-    if (queueEntry.status === 'CANCELLED') {
-      return res.status(400).json({
-        success: false,
-        message: 'Service is already cancelled'
-      });
-    }
+      if (queueEntry.status === "COMPLETED") {
+        return res.status(400).json({
+          success: false,
+          message: "Cannot cancel a completed service",
+        });
+      }
 
-    if (queueEntry.status === 'COMPLETED') {
-      return res.status(400).json({
-        success: false,
-        message: 'Cannot cancel a completed service'
-      });
-    }
-
-    // Update the queue entry status to cancelled
-    const updatedQueue = await prisma.queueEntry.update({
-      where: { id: parseInt(queueId) },
-      data: {
-        status: 'CANCELLED',
-        updatedAt: new Date()
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            studentCode: true,
-            course: true,
-            year: true
-          }
+      // Update the queue entry status to cancelled
+      const updatedQueue = await prisma.queueEntry.update({
+        where: { id: parseInt(queueId) },
+        data: {
+          status: "CANCELLED",
+          updatedAt: new Date(),
         },
-        service: {
-          select: {
-            id: true,
-            name: true
-          }
-        }
-      }
-    });
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              studentCode: true,
+              course: true,
+              year: true,
+            },
+          },
+          service: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+      });
 
-    // Add to history
-    await prisma.queueHistory.create({
-      data: {
-        userId: queueEntry.userId,
-        serviceId: queueEntry.serviceId,
-        serviceName: queueEntry.service.name,
-        userName: queueEntry.user.name,
-        userCode: queueEntry.user.studentCode,
-        status: 'CANCELLED',
-        completedAt: new Date()
-      }
-    });
+      // Add to history
+      await prisma.queueHistory.create({
+        data: {
+          userId: queueEntry.userId,
+          serviceId: queueEntry.serviceId,
+          serviceName: queueEntry.service.name,
+          userName: queueEntry.user.name,
+          userCode: queueEntry.user.studentCode,
+          status: "CANCELLED",
+          completedAt: new Date(),
+        },
+      });
 
-    // Emit socket event for real-time updates if socket is available
-    if (req.io) {
-      req.io.to(`service-${queueEntry.serviceId}`).emit('queue-updated', {
-        type: 'SERVICE_CANCELLED',
-        serviceId: queueEntry.serviceId,
-        queueId: queueEntry.id,
-        student: queueEntry.user,
-        timestamp: new Date()
+      // Emit socket event for real-time updates if socket is available
+      if (req.io) {
+        req.io.to(`service-${queueEntry.serviceId}`).emit("queue-updated", {
+          type: "SERVICE_CANCELLED",
+          serviceId: queueEntry.serviceId,
+          queueId: queueEntry.id,
+          student: queueEntry.user,
+          timestamp: new Date(),
+        });
+      }
+
+      res.json({
+        success: true,
+        message: `Service cancelled for ${updatedQueue.user.name}`,
+        data: {
+          cancelledEntry: {
+            id: updatedQueue.id,
+            student: updatedQueue.user,
+            service: updatedQueue.service,
+            status: updatedQueue.status,
+            cancelledAt: updatedQueue.updatedAt,
+          },
+        },
+      });
+    } catch (error) {
+      console.error("Cancel service error:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to cancel service",
+        error:
+          process.env.NODE_ENV === "development" ? error.message : undefined,
       });
     }
-
-    res.json({
-      success: true,
-      message: `Service cancelled for ${updatedQueue.user.name}`,
-      data: {
-        cancelledEntry: {
-          id: updatedQueue.id,
-          student: updatedQueue.user,
-          service: updatedQueue.service,
-          status: updatedQueue.status,
-          cancelledAt: updatedQueue.updatedAt
-        }
-      }
-    });
-
-  } catch (error) {
-    console.error('Cancel service error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to cancel service',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
   }
-}
 
   // Helper method to calculate wait time
   calculateWaitTime(joinedAt) {
     const now = new Date();
     const diffMs = now - new Date(joinedAt);
     const diffMins = Math.floor(diffMs / 60000);
-    
+
     if (diffMins < 60) {
       return `${diffMins} mins`;
     } else {
