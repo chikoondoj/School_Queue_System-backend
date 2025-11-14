@@ -412,84 +412,73 @@ class AdminController {
 
   // Get monthly report per service
   async getMonthlyReport(req, res) {
-  try {
-    const { month, year } = req.query;
+    try {
+      const { month, year, serviceId } = req.query;
 
-    if (!month || !year) {
-      return res.status(400).json({
-        success: false,
-        message: "month and year are required. Example: ?month=11&year=2025",
-      });
-    }
+      // Base filter: completed tickets optional
+      const whereFilter = {};
 
-    const startDate = new Date(year, month - 1, 1);
-    const endDate = new Date(year, month, 1);
+      if (month && year) {
+        const startDate = new Date(year, month - 1, 1);
+        const endDate = new Date(year, month, 1);
+        whereFilter.completedAt = { gte: startDate, lt: endDate };
+      }
 
-    // Fetch all completed tickets within the month including service and clerk info
-    const tickets = await prisma.tickets.findMany({
-      where: {
-        status: "COMPLETED",
-        completedAt: {
-          gte: startDate,
-          lt: endDate,
+      if (serviceId) {
+        whereFilter.serviceId = serviceId;
+      }
+
+      // Fetch tickets
+      const tickets = await prisma.tickets.findMany({
+        where: whereFilter,
+        include: {
+          clerk: { select: { id: true, name: true } },
+          service: { select: { id: true, name: true } },
         },
-      },
-      include: {
-        clerk: { select: { id: true, name: true } }, // make sure your Tickets model has clerkId relation
-        service: { select: { id: true, name: true } },
-      },
-    });
+      });
 
-    // Aggregate tickets by service and clerk
-    const serviceMap = new Map();
+      // Aggregate by service -> clerk as before
+      const serviceMap = new Map();
 
-    tickets.forEach((ticket) => {
-      const { service, clerk } = ticket;
+      tickets.forEach((ticket) => {
+        const { service, clerk } = ticket;
 
-      if (!serviceMap.has(service.id)) {
-        serviceMap.set(service.id, {
-          serviceId: service.id,
-          serviceName: service.name,
-          clerks: new Map(),
-        });
-      }
+        if (!serviceMap.has(service.id)) {
+          serviceMap.set(service.id, {
+            serviceId: service.id,
+            serviceName: service.name,
+            clerks: new Map(),
+          });
+        }
 
-      const serviceEntry = serviceMap.get(service.id);
-      const clerkId = clerk?.id || "unknown";
+        const serviceEntry = serviceMap.get(service.id);
+        const clerkId = clerk?.id || "unknown";
 
-      if (!serviceEntry.clerks.has(clerkId)) {
-        serviceEntry.clerks.set(clerkId, {
-          clerkId,
-          clerkName: clerk?.name || "Unknown Clerk",
-          totalAttended: 0,
-        });
-      }
+        if (!serviceEntry.clerks.has(clerkId)) {
+          serviceEntry.clerks.set(clerkId, {
+            clerkId,
+            clerkName: clerk?.name || "Unknown Clerk",
+            totalAttended: 0,
+          });
+        }
 
-      serviceEntry.clerks.get(clerkId).totalAttended += 1;
-    });
+        serviceEntry.clerks.get(clerkId).totalAttended += 1;
+      });
 
-    // Convert Map to array and nested clerks array
-    const results = Array.from(serviceMap.values()).map((service) => ({
-      serviceId: service.serviceId,
-      serviceName: service.serviceName,
-      clerks: Array.from(service.clerks.values()),
-    }));
+      const results = Array.from(serviceMap.values()).map((service) => ({
+        serviceId: service.serviceId,
+        serviceName: service.serviceName,
+        clerks: Array.from(service.clerks.values()),
+      }));
 
-    res.json({
-      success: true,
-      data: results,
-    });
-
-  } catch (error) {
-    console.error("Monthly report error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to generate monthly report",
-      error: process.env.NODE_ENV === "development" ? error.message : undefined,
-    });
+      res.json({ success: true, data: results });
+    } catch (err) {
+      console.error(err);
+      res
+        .status(500)
+        .json({ success: false, message: "Failed to fetch report" });
+    }
   }
-}
-
 
   // Add this method to your AdminController class
 

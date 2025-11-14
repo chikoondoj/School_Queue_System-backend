@@ -401,8 +401,8 @@ class Models {
       if (clerkId) updateData.clerkId = clerkId;
     }
 
-    if (status.toUpperCase() === "COMPLETED" && completedAt) {
-      updateData.completedAt = completedAt;
+    if (status.toUpperCase() === "COMPLETED") {
+      updateData.completedAt = completedAt || new Date();
     }
 
     return await prisma.tickets.update({
