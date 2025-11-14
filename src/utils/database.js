@@ -228,7 +228,7 @@ class Database {
           t.status,
           t."createdAt",
           t."updatedAt",
-          t.calledAt,
+          t."calledAt",
           t."completedAt",
           t."userId",
           t."serviceId",
