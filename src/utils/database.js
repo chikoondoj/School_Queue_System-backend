@@ -221,6 +221,7 @@ class Database {
 
       // Create a view for active tickets - UPDATED TO USE queue_tickets
       await client.query(`
+        DROP VIEW IF EXISTS active_tickets_view;
         CREATE OR REPLACE VIEW active_tickets_view AS
         SELECT 
           t.id,
