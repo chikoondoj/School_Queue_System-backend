@@ -410,51 +410,62 @@ class AdminController {
 
   // Get monthly report per service
   async getMonthlyReport(req, res) {
-    try {
-      const { month, year } = req.query;
+  try {
+    const { month, year } = req.query;
 
-      if (!month || !year) {
-        return res.status(400).json({
-          success: false,
-          message: "month and year are required. Example: ?month=3&year=2025",
-        });
-      }
-
-      const startDate = new Date(year, month - 1, 1);
-      const endDate = new Date(year, month, 1);
-
-      const report = await prisma.queueHistory.groupBy({
-        by: ["serviceId", "serviceName"],
-        where: {
-          status: "COMPLETED",
-          completedAt: {
-            gte: startDate,
-            lt: endDate,
-          },
-        },
-        _count: {
-          serviceId: true,
-        },
-      });
-
-      res.json({
-        success: true,
-        data: report.map((r) => ({
-          serviceId: r.serviceId,
-          serviceName: r.serviceName,
-          totalStudentsThisMonth: r._count.serviceId,
-        })),
-      });
-    } catch (error) {
-      console.error("Monthly report error:", error);
-      res.status(500).json({
+    if (!month || !year) {
+      return res.status(400).json({
         success: false,
-        message: "Failed to generate monthly report",
-        error:
-          process.env.NODE_ENV === "development" ? error.message : undefined,
+        message: "month and year are required. Example: ?month=11&year=2025",
       });
     }
+
+    const startDate = new Date(year, month - 1, 1);
+    const endDate = new Date(year, month, 1);
+
+    // Group tickets completed within the selected month
+    const report = await prisma.tickets.groupBy({
+      by: ["serviceId"],
+      where: {
+        status: "COMPLETED",
+        completedAt: {
+          gte: startDate,
+          lt: endDate,
+        },
+      },
+      _count: { serviceId: true },
+    });
+
+    // Attach service names
+    const results = [];
+
+    for (const r of report) {
+      const service = await prisma.service.findUnique({
+        where: { id: r.serviceId },
+        select: { name: true },
+      });
+
+      results.push({
+        serviceId: r.serviceId,
+        serviceName: service?.name || "Unknown",
+        totalAttended: r._count.serviceId,
+      });
+    }
+
+    res.json({
+      success: true,
+      data: results,
+    });
+
+  } catch (error) {
+    console.error("Monthly report error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to generate monthly report",
+    });
   }
+}
+
 
   // Add this method to your AdminController class
 
