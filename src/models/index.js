@@ -398,6 +398,7 @@ class Models {
 
     if (status.toUpperCase() === "CALLED" && calledAt) {
       updateData.calledAt = calledAt;
+      if (clerkId) updateData.clerkId = clerkId;
     }
 
     if (status.toUpperCase() === "COMPLETED" && completedAt) {

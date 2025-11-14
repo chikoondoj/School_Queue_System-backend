@@ -3,16 +3,30 @@ const { Models } = require("../models");
 // Clerk: call next ticket by ID
 async function callNext(req, res) {
   try {
+    const clerkId = req.session.user?.id; // the logged-in clerk's user ID
+
+    if (!clerkId || req.session.user.role !== "CLERK") {
+      return res.status(403).json({
+        success: false,
+        message: "Only clerks can call next ticket",
+      });
+    }
+
     const updated = await Models.updateTicketStatus(
       req.params.id,
       "CALLED",
-      new Date()
+      new Date(),
+      null,
+      clerkId  // pass clerkId to set in the ticket
     );
+
     res.json({ success: true, data: updated });
   } catch (err) {
+    console.error("CallNext error:", err);
     res.status(500).json({ success: false, message: err.message });
   }
 }
+
 
 // Clerk: auto-call next waiting ticket for a service
 async function callNextForService(req, res) {
