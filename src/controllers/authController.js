@@ -843,6 +843,11 @@ class AuthController {
         success: true,
         message: `Password for ${student.name} has been reset. The student must change it after logging in.`,
         temporaryPassword,
+        data: {
+          temporaryPassword,
+          studentCode: student.studentCode,
+          studentName: student.name,
+        },
       });
     } catch (error) {
       console.error("Reset password error:", error);
