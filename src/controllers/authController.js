@@ -1,8 +1,18 @@
 const bcrypt = require("bcryptjs");
+const crypto = require("crypto");
 const jwt = require("jsonwebtoken");
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 const ActivityService = require("../services/activityService");
+
+const generateTemporaryPassword = (length = 12) => {
+  const chars =
+    "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%?";
+  return Array.from(
+    { length },
+    () => chars[crypto.randomInt(chars.length)]
+  ).join("");
+};
 
 class AuthController {
   // Student Registration
@@ -452,6 +462,7 @@ class AuthController {
         ...userWithoutPassword,
         isAdmin: user.role === "ADMIN",
         isClerk: user.role === "CLERK",
+        mustChangePassword: user.mustChangePassword,
         serviceId: user.role === "CLERK" ? user.serviceId : undefined,
       };
 
@@ -534,17 +545,18 @@ class AuthController {
   // Admin Login
   async adminLogin(req, res) {
     try {
-      const { email, password } = req.body;
+      const { email, adminCode, password } = req.body;
+      const identifier = (email || adminCode || "").trim();
 
       console.log("=== ADMIN LOGIN ATTEMPT ===");
-      console.log("Email:", email);
+      console.log("Identifier:", identifier);
 
-      // Find the admin by email and role
+      // Find the admin by email or admin code
       const admin = await prisma.user.findFirst({
         where: {
-          email: email,
           role: "ADMIN",
           isActive: true,
+          OR: [{ email: identifier }, { adminCode: identifier }],
         },
       });
 
@@ -649,6 +661,7 @@ class AuthController {
           year: true,
           role: true,
           email: true,
+          mustChangePassword: true,
           createdAt: true,
           updatedAt: true,
         },
@@ -765,7 +778,10 @@ class AuthController {
       // Update password
       await prisma.user.update({
         where: { id: req.user.id },
-        data: { password: hashedNewPassword },
+        data: {
+          password: hashedNewPassword,
+          mustChangePassword: false,
+        },
       });
 
       res.json({
@@ -812,17 +828,21 @@ class AuthController {
         });
       }
 
-      const defaultPassword = "54321";
-      const hashedPassword = await bcrypt.hash(defaultPassword, 12);
+      const temporaryPassword = generateTemporaryPassword();
+      const hashedPassword = await bcrypt.hash(temporaryPassword, 12);
 
       await prisma.user.update({
         where: { id: student.id },
-        data: { password: hashedPassword },
+        data: {
+          password: hashedPassword,
+          mustChangePassword: true,
+        },
       });
 
       res.json({
         success: true,
-        message: `Password for ${student.name} has been reset to ${defaultPassword}`,
+        message: `Password for ${student.name} has been reset. The student must change it after logging in.`,
+        temporaryPassword,
       });
     } catch (error) {
       console.error("Reset password error:", error);
@@ -902,7 +922,12 @@ class AuthController {
           });
         }
 
-        // Clear session cookie
+        // Clear current and legacy session cookie names.
+        res.clearCookie("queueSessionId", {
+          httpOnly: true,
+          secure: true,
+          sameSite: "none",
+        });
         res.clearCookie("connect.sid");
 
         res.json({

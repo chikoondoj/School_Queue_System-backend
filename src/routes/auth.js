@@ -64,7 +64,7 @@ router.post('/clerk/register', authController.clerkRegister);
 router.post('/clerk/login', authController.login);
 
 
-router.get("/users", authController.getAllStudents);
+router.get("/users", requireAdmin, authController.getAllStudents);
 
 
 // router.use(authenticateSession, activityLogger);
@@ -87,16 +87,13 @@ router.put(
 
 router.post(
   "/reset-student-password",
-  authenticateSession,
   validateResetStudentPassword,
   requireAdmin,
   authController.resetStudentPassword,
   // activityLogger
 );
 
-router.post('/logout', (req, res) => {
-  res.json({ success: true, message: 'Logged out successfully' });
-});
+router.post('/logout', authController.logout);
 
 // Recent activity for current user - using existing controller
 router.get("/activity", authenticateSession, (req, res) => {

@@ -21,6 +21,7 @@ model User {
   updatedAt     DateTime        @updatedAt
   adminCode     String?         @unique
   isActive      Boolean?        @default(true)
+  mustChangePassword Boolean    @default(false)
   role          Role            @default(STUDENT)
   serviceId String?
   activities    Activity[]

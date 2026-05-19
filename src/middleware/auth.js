@@ -34,6 +34,7 @@ const authenticateSession = async (req, res, next) => {
         role: true,
         email: true,
         isActive: true,
+        mustChangePassword: true,
       }
     });
 
@@ -50,6 +51,7 @@ const authenticateSession = async (req, res, next) => {
       studentCode: user.studentCode,
       name: user.name,
       role: user.role,
+      mustChangePassword: user.mustChangePassword,
       isAdmin: user.isAdmin || false
     };
 
