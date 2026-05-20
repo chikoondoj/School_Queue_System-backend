@@ -5,7 +5,8 @@
   "main": "server.js",
   "scripts": {
     "migrate": "node ./node_modules/prisma/build/index.js migrate deploy",
-    "start": "npm run migrate && node server.js",
+    "start": "node server.js",
+    "render-build": "npm install && npm run migrate",
     "create_services": "node create-services.js",
     "dev": "nodemon server.js",
     "db:migrate": "node ./node_modules/prisma/build/index.js migrate dev",

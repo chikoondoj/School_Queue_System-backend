@@ -56,6 +56,19 @@ const pgPool = new Pool({
   family: 4,
 });
 
+const ensureRuntimeSchema = async () => {
+  try {
+    await pgPool.query(
+      'ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "mustChangePassword" BOOLEAN NOT NULL DEFAULT false'
+    );
+    console.log("Runtime schema check completed");
+  } catch (error) {
+    console.error("Runtime schema check failed:", error.message);
+  }
+};
+
+ensureRuntimeSchema();
+
 const sessionMiddleware = session({
   store: new pgSession({
     pool: pgPool,
