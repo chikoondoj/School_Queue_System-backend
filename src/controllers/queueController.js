@@ -5,6 +5,8 @@ const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 const { sendSms } = require("../services/smsService");
 
+const DEFAULT_WAIT_TIME_MINUTES = 5;
+
 class QueueController {
   // Join a queue
   async joinQueue(req, res) {
@@ -128,7 +130,7 @@ class QueueController {
           (ticket) => ticket.status === "serving"
         ),
         nextInLine: queueData.find((ticket) => ticket.status === "waiting"),
-        estimatedWaitTime: queueData.length * 15, // 15 minutes per person
+        estimatedWaitTime: queueData.length * DEFAULT_WAIT_TIME_MINUTES,
       });
     } catch (error) {
       console.error("Get queue status error:", error);
@@ -185,17 +187,7 @@ class QueueController {
         ticket: result,
       });
 
-      const queueData = await queueService.getQueueByService(serviceId);
-      const waiting = queueData.filter((t) => t.status === "waiting");
-
-      if (waiting.length >= 3) {
-        const thirdInLine = waiting[2]; // 0-based index
-        if (thirdInLine && thirdInLine.user?.phone) {
-          const phone = thirdInLine.user.phone; // Ensure your Prisma model includes `phone`
-          const message = `Olá ${thirdInLine.user.name}, estás em terceiro na fila do serviço ${serviceId}. Prepara-te!`;
-          await sendSms(phone, message);
-        }
-      }
+      await queueService.notifyThirdInLine(serviceId);
 
       res.json({
         message: "Student called successfully",
@@ -288,21 +280,21 @@ class QueueController {
           name: "Registrar",
           description:
             "Registration, enrollment, transcripts, and academic records",
-          estimatedTime: 15,
+          estimatedTime: DEFAULT_WAIT_TIME_MINUTES,
           isActive: true,
         },
         {
           id: "financial_aid",
           name: "Financial Aid",
           description: "Scholarships, loans, grants, and payment assistance",
-          estimatedTime: 20,
+          estimatedTime: DEFAULT_WAIT_TIME_MINUTES,
           isActive: true,
         },
         {
           id: "student_affairs",
           name: "Student Affairs",
           description: "Student organizations, activities, and general support",
-          estimatedTime: 10,
+          estimatedTime: DEFAULT_WAIT_TIME_MINUTES,
           isActive: true,
         },
         {
@@ -310,7 +302,7 @@ class QueueController {
           name: "Academic Advising",
           description:
             "Course planning, degree requirements, and academic guidance",
-          estimatedTime: 25,
+          estimatedTime: DEFAULT_WAIT_TIME_MINUTES,
           isActive: true,
         },
         {
@@ -318,7 +310,7 @@ class QueueController {
           name: "Library Services",
           description:
             "Book requests, research assistance, and library resources",
-          estimatedTime: 10,
+          estimatedTime: DEFAULT_WAIT_TIME_MINUTES,
           isActive: true,
         },
         {
@@ -326,7 +318,7 @@ class QueueController {
           name: "IT Support",
           description:
             "Technical assistance, account issues, and system support",
-          estimatedTime: 15,
+          estimatedTime: DEFAULT_WAIT_TIME_MINUTES,
           isActive: true,
         },
       ];
@@ -402,12 +394,30 @@ class QueueController {
 
       // Get service information
       const serviceInfo = {
-        registrar: { name: "Registrar", estimatedTime: 15 },
-        financial_aid: { name: "Financial Aid", estimatedTime: 20 },
-        student_affairs: { name: "Student Affairs", estimatedTime: 10 },
-        academic_advising: { name: "Academic Advising", estimatedTime: 25 },
-        library: { name: "Library Services", estimatedTime: 10 },
-        it_support: { name: "IT Support", estimatedTime: 15 },
+        registrar: {
+          name: "Registrar",
+          estimatedTime: DEFAULT_WAIT_TIME_MINUTES,
+        },
+        financial_aid: {
+          name: "Financial Aid",
+          estimatedTime: DEFAULT_WAIT_TIME_MINUTES,
+        },
+        student_affairs: {
+          name: "Student Affairs",
+          estimatedTime: DEFAULT_WAIT_TIME_MINUTES,
+        },
+        academic_advising: {
+          name: "Academic Advising",
+          estimatedTime: DEFAULT_WAIT_TIME_MINUTES,
+        },
+        library: {
+          name: "Library Services",
+          estimatedTime: DEFAULT_WAIT_TIME_MINUTES,
+        },
+        it_support: {
+          name: "IT Support",
+          estimatedTime: DEFAULT_WAIT_TIME_MINUTES,
+        },
       };
 
       // Process queue data
@@ -513,16 +523,36 @@ class QueueController {
 
       // Get service info for estimated time
       const serviceInfo = {
-        registrar: { name: "Registrar", estimatedTime: 15 },
-        financial_aid: { name: "Financial Aid", estimatedTime: 20 },
-        student_affairs: { name: "Student Affairs", estimatedTime: 10 },
-        academic_advising: { name: "Academic Advising", estimatedTime: 25 },
-        library: { name: "Library Services", estimatedTime: 10 },
-        it_support: { name: "IT Support", estimatedTime: 15 },
+        registrar: {
+          name: "Registrar",
+          estimatedTime: DEFAULT_WAIT_TIME_MINUTES,
+        },
+        financial_aid: {
+          name: "Financial Aid",
+          estimatedTime: DEFAULT_WAIT_TIME_MINUTES,
+        },
+        student_affairs: {
+          name: "Student Affairs",
+          estimatedTime: DEFAULT_WAIT_TIME_MINUTES,
+        },
+        academic_advising: {
+          name: "Academic Advising",
+          estimatedTime: DEFAULT_WAIT_TIME_MINUTES,
+        },
+        library: {
+          name: "Library Services",
+          estimatedTime: DEFAULT_WAIT_TIME_MINUTES,
+        },
+        it_support: {
+          name: "IT Support",
+          estimatedTime: DEFAULT_WAIT_TIME_MINUTES,
+        },
       };
 
       const estimatedWaitTime =
-        currentPosition * (serviceInfo[ticket.serviceId]?.estimatedTime || 15);
+        currentPosition *
+        (serviceInfo[ticket.serviceId]?.estimatedTime ||
+          DEFAULT_WAIT_TIME_MINUTES);
 
       res.json({
         success: true,

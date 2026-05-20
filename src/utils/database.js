@@ -370,22 +370,22 @@ class Database {
         {
           name: "Admission",
           description: "Student admission and enrollment services",
-          estimatedTime: 15,
+          estimatedTime: 5,
         },
         {
           name: "Registration",
           description: "Course registration and scheduling",
-          estimatedTime: 10,
+          estimatedTime: 5,
         },
         {
           name: "Financial Aid",
           description: "Financial assistance and student loans",
-          estimatedTime: 20,
+          estimatedTime: 5,
         },
         {
           name: "Counseling",
           description: "Academic and personal counseling services",
-          estimatedTime: 30,
+          estimatedTime: 5,
         },
       ];
 

@@ -12,37 +12,37 @@ async function main() {
     {
       name: 'Student Admission',
       description: 'General admission inquiries and enrollment',
-      estimatedTime: 15,
+      estimatedTime: 5,
       isActive: true
     },
     {
       name: 'Student Registration',
       description: 'Course registration and academic enrollment',
-      estimatedTime: 12,
+      estimatedTime: 5,
       isActive: true
     },
     {
       name: 'Academic Records',
       description: 'Transcripts, certificates, and academic documents',
-      estimatedTime: 10,
+      estimatedTime: 5,
       isActive: true
     },
     {
       name: 'Financial Aid',
       description: 'Scholarships, loans, and financial assistance',
-      estimatedTime: 20,
+      estimatedTime: 5,
       isActive: true
     },
     {
       name: 'Counseling',
       description: 'Academic and personal counseling services',
-      estimatedTime: 25,
+      estimatedTime: 5,
       isActive: true
     },
     {
       name: 'IT Support',
       description: 'Technical support and account issues',
-      estimatedTime: 12,
+      estimatedTime: 5,
       isActive: true
     }
   ];

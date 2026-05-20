@@ -3,7 +3,8 @@ const path = require("path");
 const router = express.Router();
 const { PrismaClient } = require("@prisma/client");
 const authController = require("../controllers/authController");
-const { updateQueuePositions } = require("../services/queueService");
+const queueService = require("../services/queueService");
+const { updateQueuePositions } = queueService;
 const queueController = require("../controllers/queueController");
 const {
   authenticateSession,
@@ -22,6 +23,7 @@ const {
 } = require("../middleware/validation");
 
 const prisma = new PrismaClient();
+const DEFAULT_WAIT_TIME_MINUTES = 5;
 
 router.get("/student/login", (req, res) => {
   res.sendFile(path.join(__dirname, "../../views/pages/studentLogin.html"));
@@ -129,7 +131,8 @@ router.get("/services/detailed", async (req, res) => {
       const inProgressCount = service.tickets.filter(
         (t) => t.status === "IN_PROGRESS"
       ).length;
-      const estimatedWaitTime = waitingCount * (service.estimatedTime || 15);
+      const estimatedWaitTime =
+        waitingCount * (service.estimatedTime || DEFAULT_WAIT_TIME_MINUTES);
 
       return {
         id: service.id,
@@ -276,7 +279,8 @@ router.get("/my-ticket/detailed", requireStudent, async (req, res) => {
       },
     });
 
-    const estimatedWaitTime = position * (ticket.service.estimatedTime || 15);
+    const estimatedWaitTime =
+      position * (ticket.service.estimatedTime || DEFAULT_WAIT_TIME_MINUTES);
 
     res.json({
       success: true,
@@ -344,7 +348,8 @@ router.get("/position/:ticketId", async (req, res) => {
       position,
       totalInQueue,
       status: ticket.status,
-      estimatedWaitTime: position * (ticket.service.estimatedTime || 15),
+      estimatedWaitTime:
+        position * (ticket.service.estimatedTime || DEFAULT_WAIT_TIME_MINUTES),
     });
   } catch (error) {
     console.error("Error fetching ticket position:", error);
@@ -473,7 +478,7 @@ router.get("/statistics/summary", async (req, res) => {
       totalTickets: service.tickets.length,
       completedTickets: service.tickets.filter((t) => t.status === "COMPLETED")
         .length,
-      averageWaitTime: service.estimatedTime || 15,
+      averageWaitTime: service.estimatedTime || DEFAULT_WAIT_TIME_MINUTES,
     }));
 
     res.json({
@@ -618,6 +623,8 @@ router.post("/join", requireStudent, async (req, res) => {
       where: { id: ticket.id },
       data: {},
     });
+
+    await queueService.notifyThirdInLine(service.id);
 
     res.json({
       success: true,

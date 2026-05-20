@@ -8,25 +8,25 @@ async function createServices() {
       {
         name: 'Financial Aid',
         description: 'Financial assistance and student aid services',
-        estimatedTime: 15,
+        estimatedTime: 5,
         isActive: true
       },
       {
         name: 'Student Admission',
         description: 'Student admission and enrollment services',
-        estimatedTime: 20,
+        estimatedTime: 5,
         isActive: true
       },
       {
         name: 'Academic Records',
         description: 'Transcripts, grades, and academic documentation',
-        estimatedTime: 10,
+        estimatedTime: 5,
         isActive: true
       },
       {
         name: 'Student Services',
         description: 'General student support and services',
-        estimatedTime: 12,
+        estimatedTime: 5,
         isActive: true
       }
     ];
@@ -42,6 +42,10 @@ async function createServices() {
         });
         console.log(`✅ Created service: ${created.name} (ID: ${created.id})`);
       } else {
+        await prisma.service.update({
+          where: { id: existing.id },
+          data: { estimatedTime: service.estimatedTime }
+        });
         console.log(`📋 Service already exists: ${existing.name} (ID: ${existing.id})`);
       }
     }

@@ -1,6 +1,8 @@
 const { Models, prisma } = require("../models");
 const { sendSms } = require("./smsService");
 
+const DEFAULT_WAIT_TIME_MINUTES = 5;
+
 class QueueService {
   constructor() {
     this.SERVICES = {
@@ -207,7 +209,7 @@ class QueueService {
             studentName: currentlyServing.student_name,
           }
         : null,
-      averageWaitTime: { minutes: avgWaitTime || 15 },
+      averageWaitTime: { minutes: avgWaitTime || DEFAULT_WAIT_TIME_MINUTES },
       todayStats: todayStats || {},
     };
   }
@@ -436,13 +438,14 @@ class QueueService {
       orderBy: { createdAt: "asc" },
     });
 
-    let avgServiceTime = 15;
+    let avgServiceTime = DEFAULT_WAIT_TIME_MINUTES;
     if (recentServiceTimes.length > 0) {
       avgServiceTime =
         recentServiceTimes.reduce((sum, time) => sum + time, 0) /
         recentServiceTimes.length;
     }
 
+    const timeOfDay = new Date().getHours();
     const timeMultiplier = this.getTimeMultiplier(timeOfDay);
     const adjustedServiceTime = avgServiceTime * timeMultiplier;
 
@@ -529,7 +532,7 @@ class QueueService {
   }
 
   calculateEstimatedWaitTime(position) {
-    const averageServiceTime = 15;
+    const averageServiceTime = DEFAULT_WAIT_TIME_MINUTES;
     const estimatedMinutes = (position - 1) * averageServiceTime;
 
     return {
@@ -541,7 +544,7 @@ class QueueService {
   }
 
   calculateEstimatedCompletion(startTime) {
-    const avgServiceTime = 15;
+    const avgServiceTime = DEFAULT_WAIT_TIME_MINUTES;
     const start = new Date(startTime);
     const completion = new Date(start.getTime() + avgServiceTime * 60000);
 
@@ -596,7 +599,7 @@ class QueueService {
 
   async getAverageServiceTime(serviceId) {
     const recentTimes = await Models.getRecentServiceTimes(serviceId, 20);
-    if (recentTimes.length === 0) return 15;
+    if (recentTimes.length === 0) return DEFAULT_WAIT_TIME_MINUTES;
 
     return Math.round(
       recentTimes.reduce((sum, time) => sum + time, 0) / recentTimes.length
@@ -754,26 +757,37 @@ class QueueService {
     return allServices.filter((service) => service.isAvailable);
   }
 
-  async notifyThirdInLine(serviceId) {
-  const queue = await prisma.tickets.findMany({
-    where: {
-      serviceId,
-      status: "WAITING",
-    },
-    include: {
-      user: true, // include user to get phone and name
-    },
-    orderBy: { createdAt: "asc" },
-  });
+  buildLineNotificationMessage(ticket, position) {
+    const serviceName = ticket.service?.name || ticket.serviceId;
+    return `${serviceName}: you're ${position} in line. Please stay close. You will ne attended soon. Thank you for your patience.`;
+  }
 
-  if (queue.length >= 3) {
-    const third = queue[2]; // 0-based index
-    if (third.user?.phone) {
-      const message = `Olá ${third.user.name}, estás em terceiro na fila do serviço ${serviceId}. Prepara-te!`;
-      await sendSms(third.user.phone, message);
+  async notifyThirdInLine(serviceId) {
+    const queue = await prisma.tickets.findMany({
+      where: {
+        serviceId,
+        status: "WAITING",
+      },
+      include: {
+        user: true,
+        service: {
+          select: {
+            name: true,
+          },
+        },
+      },
+      orderBy: { createdAt: "asc" },
+    });
+
+    if (queue.length >= 3) {
+      const position = 3;
+      const third = queue[position - 1];
+      if (third.user?.phone) {
+        const message = this.buildLineNotificationMessage(third, position);
+        await sendSms(third.user.phone, message);
+      }
     }
   }
-}
 }
 
 module.exports = new QueueService();
