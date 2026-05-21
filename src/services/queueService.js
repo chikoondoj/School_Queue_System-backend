@@ -759,7 +759,7 @@ class QueueService {
 
   buildLineNotificationMessage(ticket, position) {
     const serviceName = ticket.service?.name || ticket.serviceId;
-    return `${serviceName}: you're ${position} in line. Please stay close. You will ne attended soon. Thank you for your patience.`;
+    return `SchoolQueue: you're ${position} in line for ${serviceName}. Please stay close. You will be attended soon.`;
   }
 
   async notifyThirdInLine(serviceId) {
@@ -784,7 +784,11 @@ class QueueService {
       const third = queue[position - 1];
       if (third.user?.phone) {
         const message = this.buildLineNotificationMessage(third, position);
-        await sendSms(third.user.phone, message);
+        try {
+          await sendSms(third.user.phone, message);
+        } catch (error) {
+          console.error("Failed to notify third student in line:", error);
+        }
       }
     }
   }

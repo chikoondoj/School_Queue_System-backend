@@ -4,6 +4,7 @@ const jwt = require("jsonwebtoken");
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 const ActivityService = require("../services/activityService");
+const { normalizeMozambiquePhone } = require("../utils/mozambiquePhone");
 
 const generateTemporaryPassword = (length = 12) => {
   const chars =
@@ -66,30 +67,26 @@ class AuthController {
         });
       }
 
+      let normalizedPhone = null;
+
       if (phone) {
-        const phoneRegex = /^(?:\+258)?(82|83|84|85)\d{7}$/;
-        if (!phoneRegex.test(phone)) {
+        const phoneValidation = normalizeMozambiquePhone(phone);
+        if (!phoneValidation.isValid) {
           console.log("Invalid phone number format");
           return res.status(400).json({
             success: false,
             message:
-              "Invalid phone number. Only Mozambican numbers (Tmcel and Vodacom) starting with +258 are allowed.",
+              phoneValidation.reason ||
+              "Invalid phone number. Only Tmcel/Mcel and Vodacom Mozambican numbers are allowed for SMS notifications.",
           });
         }
-        const existingPhoneUser = await prisma.user.findUnique({
-          where: { phone },
-        });
-        if (existingPhoneUser) {
-          return res.status(400).json({
-            success: false,
-            message: "Phone number is already registered",
-          });
-        }
-      }
 
-      if (phone) {
-        const existingPhoneUser = await prisma.user.findUnique({
-          where: { phone },
+        normalizedPhone = phoneValidation.e164;
+
+        const existingPhoneUser = await prisma.user.findFirst({
+          where: {
+            OR: [{ phone: normalizedPhone }, { phone }],
+          },
         });
         if (existingPhoneUser) {
           return res.status(400).json({
@@ -141,7 +138,7 @@ class AuthController {
         year: parseInt(year),
         password: hashedPassword,
         email: email || null,
-        phone: phone || null,
+        phone: normalizedPhone,
         role: "STUDENT",
       };
 

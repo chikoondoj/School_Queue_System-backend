@@ -51,7 +51,18 @@ class QueueController {
         });
       }
 
-      await sendSms(phone, message);
+      if (ticket.user?.phone) {
+        const position = ticket.queueInfo?.position || ticket.position || 1;
+        const serviceName =
+          ticket.service?.name || ticket.queueInfo?.service || serviceId;
+        const message = `SchoolQueue: you joined ${serviceName}. Your queue position is ${position}. Please stay close.`;
+
+        try {
+          await sendSms(ticket.user.phone, message);
+        } catch (error) {
+          console.error("Failed to send queue join SMS:", error);
+        }
+      }
 
       res.status(201).json({
         message: "Successfully joined the queue",
